@@ -1,0 +1,6 @@
+domain: octorun.github.io
+layout:
+- go.kubebuilder.io/v3
+projectName: octorun
+repo: octorun.github.io/octorun
+version: "3"
