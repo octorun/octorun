@@ -5,6 +5,21 @@ metadata:
     control-plane: controller-manager
   name: system
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: manager
+  namespace: system
+spec:
+  ports:
+  - port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    control-plane: controller-manager
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,9 +45,17 @@ spec:
       - command:
         - /manager
         args:
-        - --leader-elect
+        - "--leader-elect"
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=127.0.0.1:8080"
+        - "--zap-time-encoding=rfc3339"
+        - "--github-access-token=$(GITHUB_ACCESS_TOKEN)"
+        - "--github-webhook-secret=$(GITHUB_WEBHOOK_SECRET)"
         image: manager:latest
         name: manager
+        envFrom:
+        - secretRef:
+            name: manager-secret
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:
@@ -47,8 +70,9 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        # TODO(user): Configure the resources accordingly based on the project requirements.
-        # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+        ports:
+        - containerPort: 6443
+          protocol: TCP
         resources:
           limits:
             cpu: 500m

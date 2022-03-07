@@ -1,0 +1,4 @@
+# Ignore generated file under config dir
+config/crd/bases
+config/rbac/role.yaml
+config/webhook/manifests.yaml

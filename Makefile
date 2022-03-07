@@ -63,27 +63,23 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
+.PHONY: dev
+dev: ## Start tilt for local development
+	@bash -c "trap 'echo teardown tilt; tilt down' EXIT; tilt up --stream"
+
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 ##@ Build
 
-.PHONY: build
-build: generate fmt vet ## Build manager binary.
+.PHONY: manager
+manager: generate fmt vet ## Build manager binary.
 	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -o bin/manager main.go
 
-.PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
-
-.PHONY: build-image
-build-image: test ## Build container image with the manager.
+.PHONY: manager-image
+manager-image: test ## Build manager container image.
 	docker build -t ${MANAGER_IMAGE} .
-
-.PHONY: push-image
-push-image: ## Push container image with the manager.
-	docker push ${MANAGER_IMAGE}
 
 ##@ Deployment
 
@@ -107,6 +103,8 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Tools
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 .PHONY: controller-gen

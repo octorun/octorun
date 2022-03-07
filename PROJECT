@@ -3,4 +3,29 @@ layout:
 - go.kubebuilder.io/v3
 projectName: octorun
 repo: octorun.github.io/octorun
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: octorun.github.io
+  kind: Runner
+  path: octorun.github.io/octorun/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: octorun.github.io
+  kind: RunnerSet
+  path: octorun.github.io/octorun/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"

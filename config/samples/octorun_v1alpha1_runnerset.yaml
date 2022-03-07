@@ -1,0 +1,6 @@
+apiVersion: octorun.github.io/v1alpha1
+kind: RunnerSet
+metadata:
+  name: runnerset-sample
+spec:
+  # TODO(user): Add fields here

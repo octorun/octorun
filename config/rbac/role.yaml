@@ -1,0 +1,106 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runners/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runners/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runnersets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runnersets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - octorun.github.io
+  resources:
+  - runnersets/status
+  verbs:
+  - get
+  - patch
+  - update

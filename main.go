@@ -31,6 +31,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	"octorun.github.io/octorun/controllers"
+	"octorun.github.io/octorun/hooks"
+	"octorun.github.io/octorun/pkg/github"
+	"octorun.github.io/octorun/util/pod"
+	"octorun.github.io/octorun/webhooks"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -42,6 +49,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -51,6 +59,7 @@ type options struct {
 	enableLeaderElection bool
 
 	Logger zap.Options
+	Github github.Options
 }
 
 func (o *options) bindFlags(fs *flag.FlagSet) {
@@ -62,6 +71,7 @@ func (o *options) bindFlags(fs *flag.FlagSet) {
 
 	o.Logger.Development = true
 	o.Logger.BindFlags(fs)
+	o.Github.BindFlags(fs)
 }
 
 func main() {
@@ -85,7 +95,45 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.RunnerReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Github:   opts.Github.GetClient(),
+		Executor: pod.ExecutorManagedBy(mgr),
+		Recorder: mgr.GetEventRecorderFor(controllers.RunnerController),
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Runner")
+		os.Exit(1)
+	}
+	if err = (&controllers.RunnerSetReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor(controllers.RunnerSetController),
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RunnerSet")
+		os.Exit(1)
+	}
+
+	if err = (&webhooks.RunnerWebhook{
+		Client: mgr.GetAPIReader(),
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Runner")
+		os.Exit(1)
+	}
+	if err = (&webhooks.RunnerSetWebhook{
+		Client: mgr.GetAPIReader(),
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "RunnerSet")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
+
+	if err := (&hooks.GithubHook{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(ctx, mgr, opts.Github.GetWebhookServer()); err != nil {
+		setupLog.Error(err, "unable to set up github webhook")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
