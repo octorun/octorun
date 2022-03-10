@@ -31,11 +31,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
 	"octorun.github.io/octorun/controllers"
 	"octorun.github.io/octorun/hooks"
+	"octorun.github.io/octorun/metrics"
 	"octorun.github.io/octorun/pkg/github"
+	"octorun.github.io/octorun/pkg/statemetrics"
 	"octorun.github.io/octorun/util/pod"
 	"octorun.github.io/octorun/webhooks"
 	// +kubebuilder:scaffold:imports
@@ -141,6 +144,14 @@ func main() {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
+	if err := crmetrics.Registry.Register(statemetrics.NewCollector(mgr,
+		&metrics.RunnerProvider{},
+		&metrics.RunnerSetProvider{},
+	)); err != nil {
+		setupLog.Error(err, "unable to register statemetrics collector")
 		os.Exit(1)
 	}
 

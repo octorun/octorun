@@ -83,6 +83,11 @@ func (r *RunnerSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
+	selector, err := metav1.LabelSelectorAsSelector(&runnerset.Spec.Selector)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	runners, err := r.findRunners(ctx, runnerset)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -96,6 +101,7 @@ func (r *RunnerSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	runnerset.Status.Selector = selector.String()
 	return ctrl.Result{}, nil
 }
 

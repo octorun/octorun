@@ -14,6 +14,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY hooks/ hooks/
+COPY metrics/ metrics/
 COPY pkg/ pkg/
 COPY util/ util/
 COPY webhooks/ webhooks/

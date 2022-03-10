@@ -27,6 +27,7 @@ local_resource("octorun-manifest",
                labels=[])
 
 manager_deps.append("hooks")
+manager_deps.append("metrics")
 manager_deps.append("pkg")
 manager_deps.append("util")
 local_resource("octorun-manager-binary",
