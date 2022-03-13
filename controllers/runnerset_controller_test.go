@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -48,7 +49,7 @@ var _ = Describe("RunnerSetReconciler", func() {
 	BeforeEach(func() {
 		selector = metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"octorun.github.io/runners": "my-runners-" + util.RandomString(6),
+				"octorun.github.io/runnerset": "myrunnerset",
 			},
 		}
 
@@ -67,7 +68,8 @@ var _ = Describe("RunnerSetReconciler", func() {
 					Spec: octorunv1alpha1.RunnerSpec{
 						URL: os.Getenv("TEST_GITHUB_URL"),
 						Image: octorunv1alpha1.RunnerImage{
-							Name: "ghcr.io/octorun/runner:v2.288.1",
+							Name:       "ghcr.io/octorun/runner",
+							PullPolicy: corev1.PullIfNotPresent,
 						},
 					},
 				},
@@ -77,12 +79,12 @@ var _ = Describe("RunnerSetReconciler", func() {
 
 	JustBeforeEach(func() {
 		By("Creating a new RunnerSet")
-		Expect(crclient.Create(ctx, runnerset)).Should(Succeed())
+		Expect(crclient.Create(ctx, runnerset)).To(Succeed())
 	})
 
 	AfterEach(func() {
 		By("Deleting RunnerSet")
-		Expect(client.IgnoreNotFound(crclient.Delete(ctx, runnerset))).Should(Succeed())
+		Expect(client.IgnoreNotFound(crclient.Delete(ctx, runnerset))).To(Succeed())
 		Eventually(func() bool {
 			err := crclient.Get(ctx, client.ObjectKeyFromObject(runnerset), runnerset)
 			return apierrors.IsNotFound(err)

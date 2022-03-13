@@ -37,7 +37,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
@@ -60,6 +59,10 @@ var (
 )
 
 func TestControllers(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	if _, ok := os.LookupEnv("TEST_GITHUB_URL"); !ok {
 		t.Skip("TEST_GITHUB_URL env is not set")
 	}
@@ -73,7 +76,7 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	ctrl.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx, cancel = context.WithCancel(context.TODO())
 	By("bootstrapping test environment")
 	testenv = &envtest.Environment{
@@ -136,12 +139,12 @@ var _ = BeforeSuite(func() {
 	}
 
 	By("creating test namespace")
-	Expect(crclient.Create(ctx, testns)).Should(Succeed())
+	Expect(crclient.Create(ctx, testns)).To(Succeed())
 }, 60)
 
 var _ = AfterSuite(func() {
 	By("cleaning up test namespace")
-	Expect(client.IgnoreNotFound(crclient.Delete(ctx, testns))).Should(Succeed())
+	Expect(client.IgnoreNotFound(crclient.Delete(ctx, testns))).To(Succeed())
 	timeout := 10 * time.Minute
 	Eventually(func() bool {
 		err := crclient.Get(ctx, client.ObjectKeyFromObject(testns), testns)

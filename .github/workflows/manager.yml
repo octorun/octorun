@@ -1,0 +1,187 @@
+name: manager
+on:
+  push:
+    branches:
+     - main
+    paths:
+      - '**'
+      - '!hack/**'
+      - '!runner/**'
+      - '!**.md'
+      - '!.gitignore'
+      - '!LICENSE'
+      - '!PROJECT'
+      - '!Makefile'
+      - '!Tiltfile'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**'
+      - '!hack/**'
+      - '!runner/**'
+      - '!**.md'
+      - '!.gitignore'
+      - '!LICENSE'
+      - '!PROJECT'
+      - '!Makefile'
+      - '!Tiltfile'
+env:
+  GOLANG_VERSION: 1.17
+  KIND_NAME: default
+  KIND_IMAGE: kindest/node:v1.23.4
+  KIND_VERSION: v0.12.0
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    needs: [lint, verify]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - name: Build binary
+      run: |
+        make manager
+  build-image:
+    runs-on: ubuntu-20.04
+    needs: [test, test-integration]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Log in to ghcr.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ghcr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    - id: build-image
+      name: Build Image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: manager
+        tags: latest
+        containerfiles: |
+          ./Dockerfile
+    - name: Push Image to ghcr.io
+      if: ${{ github.event_name == 'push' }}
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-image.outputs.image }}
+        tags: ${{ steps.build-image.outputs.tags }}
+        registry: ghcr.io/octorun
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - name: Run linters
+      uses: golangci/golangci-lint-action@v2
+      with:
+        version: v1.44
+  test:
+    runs-on: ubuntu-20.04
+    needs: [build]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - name: Run Tests
+      run: make test TEST_FLAGS='-v'
+  test-integration:
+    runs-on: ubuntu-20.04  
+    needs: [build]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - name: Setup Kind
+      uses: engineerd/setup-kind@v0.5.0
+      with:
+        name: ${{ env.KIND_NAME }}
+        image: ${{ env.KIND_IMAGE }}
+        wait: 300s
+        version: ${{ env.KIND_VERSION }}
+    - name: Wait for Kind cluster to finish bootstraping
+      run: |
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+        kubectl cluster-info
+    - name: Load runner images
+      run: |
+        docker pull ghcr.io/octorun/runner
+        kind load docker-image --name ${{ env.KIND_NAME }} ghcr.io/octorun/runner
+    - name: Run Integration Test
+      env:
+        TEST_GITHUB_URL: ${{ secrets.TEST_GITHUB_URL }}
+        TEST_GITHUB_ACCESS_TOKEN: ${{ secrets.TEST_GITHUB_ACCESS_TOKEN }}
+      run: |
+        make test-integration GINKGO_FLAGS='-v'
+  verify:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go Cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+    - name: Verify Tools
+      run: |
+        make controller-gen
+        make kustomize
+        make envtest
+        make ginkgo
+    - name: Verify Go Modules
+      run: |
+        go mod tidy
+        if !(git diff --quiet HEAD -- go.mod go.sum); then \
+          echo "go module files are out of date"; exit 1; \
+        fi
+    - name: Verify Generated Files
+      run: |
+        make generate && make manifests
+        if !(git diff --quiet HEAD -- api/**/zz_generated.* config/crd/bases/*.yaml config/rbac/role.yaml config/webhook/manifests.yaml); then \
+            echo "generated files are out of date, run make generate && make manifests"; exit 1; \
+        fi

@@ -1,4 +1,4 @@
-FROM ghcr.io/octorun/runner:v2.288.1
+FROM ghcr.io/octorun/runner:latest
 
 USER root
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
