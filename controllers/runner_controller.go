@@ -197,14 +197,14 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 		log.V(1).Info("find Runner id from Pod", "pod", runnerPod.Name)
 		runnerid, err := util.FindRunnerIDFromPod(runnerPod, r.Executor)
 		if err != nil {
-			log.Error(err, "unable to retrive Runner id from Pod", "pod", runnerPod.Name)
+			log.Error(err, "unable to retrieve Runner id from Pod", "pod", runnerPod.Name)
 			return ctrl.Result{}, err
 		}
 
 		runner.Spec.ID = pointer.Int64(runnerid)
 		ghrunner, err := r.Github.GetRunner(ctx, runner.Spec.URL, runnerid)
 		if err != nil {
-			log.Error(err, "unable to retrive Runner information from Github")
+			log.Error(err, "unable to retrieve Runner information from Github")
 			return ctrl.Result{}, err
 		}
 
@@ -267,7 +267,7 @@ func secretForRunner(runner *octorunv1alpha1.Runner) *corev1.Secret {
 }
 
 func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
-	var runnerLabels []string
+	runnerLabels := make([]string, 0)
 	for k, v := range runner.ObjectMeta.Labels {
 		if !strings.HasPrefix(k, octorunv1alpha1.LabelPrefix) {
 			continue
