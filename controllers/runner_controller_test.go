@@ -60,7 +60,8 @@ var _ = Describe("RunnerReconciler", func() {
 			Spec: octorunv1alpha1.RunnerSpec{
 				URL: os.Getenv("TEST_GITHUB_URL"),
 				Image: octorunv1alpha1.RunnerImage{
-					Name: "ghcr.io/octorun/runner:v2.288.1",
+					Name:       "ghcr.io/octorun/runner",
+					PullPolicy: corev1.PullIfNotPresent,
 				},
 				Group:   "Default",
 				Workdir: "/work-dir",
@@ -94,12 +95,12 @@ var _ = Describe("RunnerReconciler", func() {
 
 	JustBeforeEach(func() {
 		By("Creating a new Runner")
-		Expect(crclient.Create(ctx, runner)).Should(Succeed())
+		Expect(crclient.Create(ctx, runner)).To(Succeed())
 	})
 
 	AfterEach(func() {
 		By("Cleanup runner")
-		Expect(client.IgnoreNotFound(crclient.Delete(ctx, runner))).Should(Succeed())
+		Expect(client.IgnoreNotFound(crclient.Delete(ctx, runner))).To(Succeed())
 		Eventually(func() bool {
 			err := crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)
 			return apierrors.IsNotFound(err)

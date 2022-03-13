@@ -1,6 +1,8 @@
 FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ARG RUNNER_VERSION
+ARG RUNNER_SEMANTIC_VERSION
 
 RUN echo "APT::Get::Assume-Yes \"true\";" > /etc/apt/apt.conf.d/90assumeyes
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
@@ -13,7 +15,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 
 RUN useradd -u 1000 -ms /bin/bash -d /runner runner
 WORKDIR /runner
-RUN curl -L https://github.com/actions/runner/releases/download/v2.288.1/actions-runner-linux-x64-2.288.1.tar.gz | tar --overwrite -xz \
+RUN curl -L https://github.com/actions/runner/releases/download/${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_SEMANTIC_VERSION}.tar.gz | tar --overwrite -xz \
     && ./bin/installdependencies.sh && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get clean \

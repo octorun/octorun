@@ -19,6 +19,10 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+TEST_FLAGS ?=
+GINKGO_FLAGS ?=
+GINKGO_NOCOLOR ?= false
+
 # Image URL to use all building/pushing image targets
 IMAGE_REGISTRY	?= ghcr.io/octorun
 MANAGER_IMAGE	?= $(IMAGE_REGISTRY)/manager
@@ -43,7 +47,7 @@ all: build
 
 .PHONY: help
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-17s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
 
@@ -57,19 +61,26 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
-	go fmt ./...
+	@go fmt ./...
 
 .PHONY: vet
 vet: ## Run go vet against code.
-	go vet ./...
+	@go vet ./...
 
 .PHONY: dev
 dev: ## Start tilt for local development
 	@bash -c "trap 'echo teardown tilt; tilt down' EXIT; tilt up --stream"
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+test: generate fmt vet ## Run unit tests.
+	go test -short ./... -coverprofile cover.out $(TEST_FLAGS)
+
+.PHONY: test-integration
+test-integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" ACK_GINKGO_RC=true $(GINKGO) \
+	-slowSpecThreshold 30 -noColor=$(GINKGO_NOCOLOR) $(GINKGO_FLAGS) \
+	-focus="RunnerReconciler|RunnerSetReconciler|RunnerWebhook|RunnerSetWebhook" \
+	./controllers/... ./webhooks/...
 
 ##@ Build
 
@@ -120,6 +131,11 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
 envtest: ## Download envtest-setup locally if necessary.
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+GINKGO = $(shell pwd)/bin/ginkgo
+.PHONY: ginkgo
+ginkgo: ## Download ginkgo locally if necessary.
+	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo@latest)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
