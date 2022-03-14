@@ -33,7 +33,7 @@ import (
 // RandomString returns a random alphanumeric string.
 func RandomString(n int) string {
 	charset := "0123456789abcdefghijklmnopqrstuvwxyz"
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 	result := make([]byte, n)
 	for i := range result {
 		result[i] = charset[rnd.Intn(len(charset))]
