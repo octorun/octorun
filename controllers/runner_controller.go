@@ -34,6 +34,7 @@ import (
 
 	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
 	"octorun.github.io/octorun/pkg/github"
+	gherrors "octorun.github.io/octorun/pkg/github/errors"
 	"octorun.github.io/octorun/util"
 	"octorun.github.io/octorun/util/annotations"
 	"octorun.github.io/octorun/util/patch"
@@ -111,11 +112,15 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 			if annotations.IsTokenExpired(runnerSecret) {
 				log.V(1).Info("registration token has expired. Refresh before deleting", "secret", runnerSecret.Name)
 				rt, err := r.Github.CreateRunnerToken(ctx, runner.Spec.URL)
-				if err != nil {
+				if err != nil && !(gherrors.IsForbidden(err) || gherrors.IsNotFound(err)) {
 					return err
 				}
 
 				annotations.AnnotateTokenExpires(runnerSecret, rt.GetExpiresAt().UTC().Format(time.RFC3339))
+				if runnerSecret.Data == nil {
+					runnerSecret.Data = make(map[string][]byte)
+				}
+
 				runnerSecret.Data["token"] = []byte(rt.GetToken())
 			}
 
@@ -158,6 +163,20 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 
 		return ctrl.SetControllerReference(runner, runnerSecret, r.Scheme)
 	}); err != nil {
+		if gherrors.IsForbidden(err) || gherrors.IsNotFound(err) {
+			// If we got forbidden or not found error from Github here just record an Warning event and return nil (terminal failure).
+			// returning Requeue false and nil error here is to prevent the controller keep reconciling and try to create the registration token and users
+			// must have to recreate the runner with the proper spec.
+			//
+			// It's ok to just record an Warning event here since users still can gather information on why
+			// the runner keeps in Pending status eg: using `kubectl describe` command
+			//
+			// TODO(prksu): consider introducing terminal failure based on Runner status/condition?
+			log.Error(err, "Unable to create Runner registration token")
+			r.Recorder.Eventf(runner, corev1.EventTypeWarning, octorunv1alpha1.RunnerSecretFailedReason, "Unable to create Runner registration token: %v", err)
+			return ctrl.Result{Requeue: false}, nil
+		}
+
 		log.Error(err, "failed reconciling Runner registration token secret", "secret", runnerSecret.Name)
 		return ctrl.Result{}, err
 	} else {

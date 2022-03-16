@@ -198,5 +198,28 @@ var _ = Describe("RunnerReconciler", func() {
 				}, timeout, interval).ShouldNot(Equal(string(oldtoken)))
 			})
 		})
+
+		Context("When Runner spec URL is not found or unaccessible", func() {
+			BeforeEach(func() {
+				runner.Spec.URL = "https://github.com/octonotfound"
+			})
+
+			It("Should terminate reconciliation", func() {
+				By("Ensuring new Runner has been created successfully")
+				Eventually(func() error {
+					return crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)
+				}, timeout, interval).ShouldNot(HaveOccurred())
+
+				time.Sleep(2 * time.Second)
+				runnerpod := podForRunner(runner)
+				runnersecret := secretForRunner(runner)
+
+				By("Ensuring Runner Secret not to created")
+				Expect(apierrors.IsNotFound(crclient.Get(ctx, client.ObjectKeyFromObject(runnersecret), runnersecret))).To(BeTrue())
+
+				By("Ensuring Runner Pod not to created")
+				Expect(apierrors.IsNotFound(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod))).To(BeTrue())
+			})
+		})
 	})
 })

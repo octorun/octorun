@@ -31,6 +31,7 @@ const (
 	RunnerOfflineReason      string = "RunnerOffline"
 	RunnerPodPendingReason   string = "RunnerPodPending"
 	RunnerPodSucceededReason string = "RunnerPodSucceeded"
+	RunnerSecretFailedReason string = "RunnerSecretFailed"
 )
 
 type RunnerPhase string
