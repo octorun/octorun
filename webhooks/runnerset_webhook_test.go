@@ -57,7 +57,7 @@ var _ = Describe("RunnerSetWebhook", func() {
 						Labels: selector.MatchLabels,
 					},
 					Spec: octorunv1alpha1.RunnerSpec{
-						URL: "github.com/org/repo",
+						URL: "https://github.com/org/repo",
 						Image: octorunv1alpha1.RunnerImage{
 							Name: "ghcr.io/octorun/runner:v2.288.1",
 						},
@@ -76,6 +76,44 @@ var _ = Describe("RunnerSetWebhook", func() {
 
 				By("Assert the RunnerSet spec template labels")
 				Expect(runnerset.Spec.Template.Labels).NotTo(BeEmpty())
+			})
+		})
+	})
+
+	Describe("ValidateCreate", func() {
+		Context("When spec URL is invalid", func() {
+			BeforeEach(func() {
+				runnerset.Spec.Template.Spec.URL = "https://google.com/org/repo/foo"
+			})
+
+			It("Should returns an error", func() {
+				Expect(crclient.Create(ctx, runnerset)).ToNot(Succeed())
+			})
+		})
+	})
+
+	Describe("ValidateUpdate", func() {
+		Context("When spec URL is valid", func() {
+			It("Should returns an error", func() {
+				By("Creating the RunnerSet")
+				Expect(crclient.Create(ctx, runnerset)).To(Succeed())
+				Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerset), runnerset)).ToNot(HaveOccurred())
+
+				runnerset.Spec.Template.Spec.URL = "https://github.com/org/repo"
+				By("Updating the RunnerSet")
+				Expect(crclient.Update(ctx, runnerset)).To(Succeed())
+			})
+		})
+
+		Context("When spec URL is invalid", func() {
+			It("Should returns an error", func() {
+				By("Creating the RunnerSet")
+				Expect(crclient.Create(ctx, runnerset)).To(Succeed())
+				Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerset), runnerset)).ToNot(HaveOccurred())
+
+				runnerset.Spec.Template.Spec.URL = "https://google.com/org/repo"
+				By("Updating the RunnerSet")
+				Expect(crclient.Update(ctx, runnerset)).To(HaveOccurred())
 			})
 		})
 	})

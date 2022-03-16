@@ -1413,8 +1413,9 @@ spec:
                             type: object
                         type: object
                       url:
-                        description: The github Organization or Repository URL for
-                          this runner.
+                        description: 'The github Organization or Repository URL for
+                          this runner. Must be a valid Github Org or Repository URL.
+                          eg: - "https://github.com/org" - "https://github.com/org/repo"'
                         type: string
                       volumeMounts:
                         description: Runner pod volumes to mount into the runner container

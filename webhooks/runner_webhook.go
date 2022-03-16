@@ -80,7 +80,21 @@ func (w *RunnerWebhook) Default(ctx context.Context, obj runtime.Object) error {
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) error {
-	return nil
+	var allErrs field.ErrorList
+	runner, ok := obj.(*octorunv1alpha1.Runner)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Runner but got a %T", obj))
+	}
+
+	if !matchOrgOrRepoURLRegexp.MatchString(runner.Spec.URL) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "url"), runner.Spec.URL, invalidURLMessage))
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(runner.GetObjectKind().GroupVersionKind().GroupKind(), runner.GetName(), allErrs)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type

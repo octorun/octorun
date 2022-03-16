@@ -16,3 +16,13 @@ limitations under the License.
 
 // Package webhooks contains Kubernetes defaulting and validating admission webhook.
 package webhooks
+
+import "regexp"
+
+const (
+	invalidURLMessage = "Must be Github Org or Repository URL. eg: https://github.com/org or https://github.com/org/repo"
+)
+
+var (
+	matchOrgOrRepoURLRegexp = regexp.MustCompile(`https?:\/\/github\.com\/[^\/]+(?:\/[^\/]+)?$`)
+)

@@ -100,6 +100,10 @@ type RunnerTemplateSpec struct {
 // RunnerSpec defines the desired state of Runner
 type RunnerSpec struct {
 	// The github Organization or Repository URL for this runner.
+	// Must be a valid Github Org or Repository URL.
+	// eg:
+	// 	- "https://github.com/org"
+	// 	- "https://github.com/org/repo"
 	URL string `json:"url"`
 
 	// ID of the runner assigned by Github, basically it is sequential number.

@@ -42,7 +42,7 @@ var _ = Describe("RunnerWebhook", func() {
 				Namespace: "default",
 			},
 			Spec: octorunv1alpha1.RunnerSpec{
-				URL: "github.com/org/repo",
+				URL: "https://github.com/org/repo",
 				Image: octorunv1alpha1.RunnerImage{
 					Name: "ghcr.io/octorun/runner:v2.288.1",
 				},
@@ -64,6 +64,18 @@ var _ = Describe("RunnerWebhook", func() {
 		})
 	})
 
+	Describe("ValidateCreate", func() {
+		Context("When spec URL is invalid", func() {
+			BeforeEach(func() {
+				runner.Spec.URL = "https://google.com/org/repo"
+			})
+
+			It("Should returns an error", func() {
+				Expect(crclient.Create(ctx, runner)).ToNot(Succeed())
+			})
+		})
+	})
+
 	Describe("ValidateUpdate", func() {
 		Context("When new spec is equal old spec", func() {
 			It("Should success to update without any changes", func() {
@@ -71,7 +83,7 @@ var _ = Describe("RunnerWebhook", func() {
 				Expect(crclient.Create(ctx, runner)).To(Succeed())
 				Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)).ToNot(HaveOccurred())
 
-				runner.Spec.URL = "github.com/org/repo"
+				runner.Spec.URL = "https://github.com/org/repo"
 				By("Updating the Runner")
 				Expect(crclient.Update(ctx, runner)).ToNot(HaveOccurred())
 			})
@@ -83,7 +95,7 @@ var _ = Describe("RunnerWebhook", func() {
 				Expect(crclient.Create(ctx, runner)).To(Succeed())
 				Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)).ToNot(HaveOccurred())
 
-				runner.Spec.URL = "github.com/org/repository"
+				runner.Spec.URL = "https://github.com/org/repository"
 				By("Updating the Runner")
 				Expect(crclient.Update(ctx, runner)).To(HaveOccurred())
 			})
