@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	RunnerAdoptedReason string = "RunnerAdopted"
+	RunnerCreatedReason string = "RunnerCreated"
+	RunnerDeletedReason string = "RunnerDeleted"
+)
+
 // RunnerSetSpec defines the desired state of RunnerSet
 type RunnerSetSpec struct {
 	// Runners is the number of desired runners. This is a pointer
