@@ -22,6 +22,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -72,12 +73,49 @@ func (w *RunnerSetWebhook) Default(ctx context.Context, obj runtime.Object) erro
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerSetWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) error {
-	return nil
+	var allErrs field.ErrorList
+	runnerset, ok := obj.(*octorunv1alpha1.RunnerSet)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", obj))
+	}
+
+	template := runnerset.Spec.Template
+	templatePath := field.NewPath("spec", "template")
+	if !matchOrgOrRepoURLRegexp.MatchString(template.Spec.URL) {
+		allErrs = append(allErrs, field.Invalid(templatePath.Child("spec", "url"), template.Spec.URL, invalidURLMessage))
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(runnerset.GetObjectKind().GroupVersionKind().GroupKind(), runnerset.GetName(), allErrs)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerSetWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
-	return nil
+	var allErrs field.ErrorList
+	_, ok := oldObj.(*octorunv1alpha1.RunnerSet)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", oldObj))
+	}
+
+	newRunnerSet, ok := newObj.(*octorunv1alpha1.RunnerSet)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", newObj))
+	}
+
+	newTemplate := newRunnerSet.Spec.Template
+	newTemplatePath := field.NewPath("spec", "template")
+	if !matchOrgOrRepoURLRegexp.MatchString(newTemplate.Spec.URL) {
+		allErrs = append(allErrs, field.Invalid(newTemplatePath.Child("spec", "url"), newTemplate.Spec.URL, invalidURLMessage))
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(newRunnerSet.GetObjectKind().GroupVersionKind().GroupKind(), newRunnerSet.GetName(), allErrs)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
