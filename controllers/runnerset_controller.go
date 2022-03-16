@@ -20,6 +20,7 @@ import (
 	"context"
 	"sort"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -165,6 +166,7 @@ func (r *RunnerSetReconciler) adoptRunner(ctx context.Context, runnerset *octoru
 	}
 
 	log.Info("adopt orphan Runner", "runner", runner.Name)
+	r.Recorder.Eventf(runnerset, corev1.EventTypeNormal, octorunv1alpha1.RunnerAdoptedReason, "Successful adopt orphan Runner %s", runner.Name)
 	return r.Patch(ctx, runner, runnerPatch)
 }
 
@@ -194,6 +196,9 @@ func (r *RunnerSetReconciler) syncRunners(ctx context.Context, runnerset *octoru
 				log.Error(err, "unable to create runner", "runner", runner.Name)
 				errs = append(errs, err)
 			}
+
+			log.Info("created runner", "runner", runner.Name)
+			r.Recorder.Eventf(runnerset, corev1.EventTypeNormal, octorunv1alpha1.RunnerCreatedReason, "Successful create Runner %s", runner.Name)
 		}
 
 		return kerrors.NewAggregate(errs)
@@ -208,6 +213,7 @@ func (r *RunnerSetReconciler) syncRunners(ctx context.Context, runnerset *octoru
 			}
 
 			log.Info("deleted runner", "runner", runner.Name)
+			r.Recorder.Eventf(runnerset, corev1.EventTypeNormal, octorunv1alpha1.RunnerDeletedReason, "Successful delete Runner %s", runner.Name)
 		}
 
 		return kerrors.NewAggregate(errs)
