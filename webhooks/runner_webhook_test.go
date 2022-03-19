@@ -18,12 +18,17 @@ package webhooks
 
 import (
 	"context"
+	"reflect"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
 	"octorun.github.io/octorun/util"
@@ -102,3 +107,214 @@ var _ = Describe("RunnerWebhook", func() {
 		})
 	})
 })
+
+func TestRunnerWebhook_Default(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+
+	tests := []struct {
+		name    string
+		obj     runtime.Object
+		want    runtime.Object
+		wantErr bool
+	}{
+		{
+			name:    "obj_is_not_runner",
+			obj:     &octorunv1alpha1.RunnerSet{},
+			wantErr: true,
+		},
+		{
+			name: "runner_defaulting_successful",
+			obj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+			},
+			want: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					Workdir: "_work",
+					Group:   "Default",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := &RunnerWebhook{
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme).
+					Build(),
+			}
+
+			if err := rw.Default(context.Background(), tt.obj); (err != nil) != tt.wantErr {
+				t.Errorf("RunnerWebhook.Default() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && !reflect.DeepEqual(tt.obj.(*octorunv1alpha1.Runner).Spec, tt.want.(*octorunv1alpha1.Runner).Spec) {
+				t.Errorf("obj spec = %v, want spec %v", tt.obj.(*octorunv1alpha1.Runner).Spec, tt.want.(*octorunv1alpha1.Runner).Spec)
+				return
+			}
+		})
+	}
+}
+
+func TestRunnerWebhook_ValidateCreate(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+
+	tests := []struct {
+		name    string
+		obj     runtime.Object
+		wantErr bool
+	}{
+		{
+			name:    "obj_is_not_runner",
+			obj:     &octorunv1alpha1.RunnerSet{},
+			wantErr: true,
+		},
+		{
+			name: "runner_missing_spec_url",
+			obj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "runner_with_invalid_spec_url",
+			obj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://google.com",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "runner_with_valid_spec",
+			obj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://github.com/octorun",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := &RunnerWebhook{
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme).
+					Build(),
+			}
+
+			if err := rw.ValidateCreate(context.Background(), tt.obj); (err != nil) != tt.wantErr {
+				t.Errorf("RunnerWebhook.ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRunnerWebhook_ValidateUpdate(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+
+	tests := []struct {
+		name    string
+		oldObj  runtime.Object
+		newObj  runtime.Object
+		wantErr bool
+	}{
+		{
+			name: "old_runner_and_new_runner_is_equal",
+			oldObj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://github.com/octorun",
+				},
+			},
+			newObj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://github.com/octorun",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "old_runner_and_new_runner_is_different",
+			oldObj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://github.com/octorun",
+				},
+			},
+			newObj: &octorunv1alpha1.Runner{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "runner-test",
+				},
+				Spec: octorunv1alpha1.RunnerSpec{
+					URL: "https://github.com/octorun/repo",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := &RunnerWebhook{
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme).
+					Build(),
+			}
+
+			if err := rw.ValidateUpdate(context.Background(), tt.oldObj, tt.newObj); (err != nil) != tt.wantErr {
+				t.Errorf("RunnerWebhook.ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRunnerWebhook_ValidateDelete(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+
+	tests := []struct {
+		name    string
+		obj     runtime.Object
+		wantErr bool
+	}{
+		// nothing to test.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := &RunnerWebhook{
+				Client: fake.NewClientBuilder().
+					WithScheme(scheme).
+					Build(),
+			}
+
+			if err := rw.ValidateDelete(context.Background(), tt.obj); (err != nil) != tt.wantErr {
+				t.Errorf("RunnerWebhook.ValidateDelete() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
