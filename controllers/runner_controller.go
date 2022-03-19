@@ -164,9 +164,9 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 		return ctrl.SetControllerReference(runner, runnerSecret, r.Scheme)
 	}); err != nil {
 		if gherrors.IsForbidden(err) || gherrors.IsNotFound(err) {
-			// If we got forbidden or not found error from Github here just record an Warning event and return nil (terminal failure).
-			// returning Requeue false and nil error here is to prevent the controller keep reconciling and try to create the registration token and users
-			// must have to recreate the runner with the proper spec.
+			// If we got forbidden or not found error from Github here just record an Warning event and return error nil (terminal failure).
+			// returning Requeue false with nil error here is to prevent the controller keep reconciling and trying to create the registration token.
+			// Users must have to recreate the runner with the proper spec.
 			//
 			// It's ok to just record an Warning event here since users still can gather information on why
 			// the runner keeps in Pending status eg: using `kubectl describe` command
@@ -197,6 +197,11 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 	// All resources already reconciled. Set runner phase to "Pending" for now it will overwritten
 	// based on runner pod phase, conditions and runner status from Github.
 	runner.Status.Phase = octorunv1alpha1.RunnerPendingPhase
+	return r.reconcileStatus(ctx, runner, runnerPod)
+}
+
+func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv1alpha1.Runner, runnerPod *corev1.Pod) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 	switch runnerPod.Status.Phase {
 	case corev1.PodPending:
 		// Returns early if Runner Pod is in Pending phase. It will automatically
