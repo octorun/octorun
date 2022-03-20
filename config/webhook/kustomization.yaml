@@ -14,6 +14,8 @@ patches:
       kind: MutatingWebhookConfiguration
       metadata:
         name: mutating-webhook-configuration
+        labels:
+          app.kubernetes.io/component: webhook
       webhooks:
       - name: mrunner.octorun.github.io
         clientConfig:
@@ -31,6 +33,8 @@ patches:
       kind: ValidatingWebhookConfiguration
       metadata:
         name: validating-webhook-configuration
+        labels:
+          app.kubernetes.io/component: webhook
       webhooks:
       - name: vrunner.octorun.github.io
         clientConfig:
