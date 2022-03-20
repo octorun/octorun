@@ -64,11 +64,17 @@ type RunnerSetStatus struct {
 	// Conditions defines current service state of the runner.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// Selector is the same as the label selector but in the string format to avoid introspection
+	// by clients. The string will be in the same format as the query-param syntax.
+	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// +optional
+	Selector string `json:"selector,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.runners,statuspath=.status.runners
+// +kubebuilder:subresource:scale:specpath=.spec.runners,statuspath=.status.runners,selectorpath=.status.selector
 // +kubebuilder:printcolumn:name="Runners",type="integer",description="Represents the current number of the runner.",JSONPath=".status.runners"
 // +kubebuilder:printcolumn:name="Idle",type="integer",description="Represents the current number of the idle runner.",JSONPath=".status.idleRunners"
 // +kubebuilder:printcolumn:name="Active",type="integer",description="Represents the current number of the active runner.",JSONPath=".status.activeRunners"

@@ -3177,12 +3177,19 @@ spec:
                 description: Runners is the most recently observed number of runners.
                 format: int32
                 type: integer
+              selector:
+                description: 'Selector is the same as the label selector but in the
+                  string format to avoid introspection by clients. The string will
+                  be in the same format as the query-param syntax. More info about
+                  label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors'
+                type: string
             type: object
         type: object
     served: true
     storage: true
     subresources:
       scale:
+        labelSelectorPath: .status.selector
         specReplicasPath: .spec.runners
         statusReplicasPath: .status.runners
       status: {}
