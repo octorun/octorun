@@ -2,3 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../default
+images:
+- name: ghcr.io/octorun/manager
+  newName: ghcr.io/octorun/manager
+  newTag: v0.1.0-rc.0
