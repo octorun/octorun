@@ -23,12 +23,9 @@ TEST_FLAGS ?=
 GINKGO_FLAGS ?=
 GINKGO_NOCOLOR ?= false
 
-RELEASE_MAIN = main
-RELEASE_VERSION ?= $(RELEASE_MAIN)
-
 # Image URL to use all building/pushing image targets
 IMAGE_REGISTRY	?= ghcr.io/octorun
-MANAGER_IMAGE	?= $(IMAGE_REGISTRY)/manager:$(RELEASE_VERSION)
+MANAGER_IMAGE	?= $(IMAGE_REGISTRY)/manager
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.23
 
@@ -99,9 +96,9 @@ ifndef ignore-not-found
 endif
 
 .PHONY: release
-release: test test-integration manager-image
-	docker push ${MANAGER_IMAGE}
-	cd config/manager && $(KUSTOMIZE) edit set image manager=${MANAGER_IMAGE}
+release: manager-image
+	docker push ${MANAGER_IMAGE}:${RELEASE_VERSION}
+	cd config/release && $(KUSTOMIZE) edit set image ${MANAGER_IMAGE}=${MANAGER_IMAGE}:${RELEASE_VERSION}
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
