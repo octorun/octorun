@@ -4,7 +4,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    control-plane: controller-manager
+    app.kubernetes.io/component: controller
   name: manager-metrics
   namespace: system
 spec:
@@ -21,4 +21,6 @@ spec:
         insecureSkipVerify: true
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/instance: manager
+      app.kubernetes.io/name: octorun
+      app.kubernetes.io/part-of: octorun

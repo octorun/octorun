@@ -9,8 +9,9 @@ namespace: octorun-system
 namePrefix: octorun-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  app.kubernetes.io/name: octorun
+  app.kubernetes.io/part-of: octorun
 
 bases:
 - ../crd
