@@ -41,6 +41,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -287,9 +288,10 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "runner_has_deletion_timestamp_but_runner_is_active",
+			name: "runner_has_deletion_timestamp_and_has_active_phase",
 			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner {
 				now := metav1.Now()
+				runner.Spec.ID = pointer.Int64(1)
 				runner.DeletionTimestamp = &now
 				runner.Status = octorunv1alpha1.RunnerStatus{
 					Phase: octorunv1alpha1.RunnerActivePhase,
@@ -298,10 +300,40 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 			},
 			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
 			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
-			expectFn:       func(cmockr *mghclient.MockClientMockRecorder) {},
-			executor:       &remoteexec.FakeRemoteExecutor{},
-			want:           reconcile.Result{RequeueAfter: 60 * time.Second},
-			wantErr:        false,
+			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
+				cmockr.GetRunner(gomock.Any(), "https://github.com/octorun", int64(1)).Return(&gogithub.Runner{
+					ID:     gogithub.Int64(1),
+					Status: gogithub.String("online"),
+					Busy:   gogithub.Bool(true),
+				}, nil)
+			},
+			executor: &remoteexec.FakeRemoteExecutor{},
+			want:     reconcile.Result{RequeueAfter: 60 * time.Second},
+			wantErr:  false,
+		},
+		{
+			name: "runner_has_deletion_timestamp_and_has_active_phase_but_already_completed",
+			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner {
+				now := metav1.Now()
+				runner.Spec.ID = pointer.Int64(1)
+				runner.DeletionTimestamp = &now
+				runner.Status = octorunv1alpha1.RunnerStatus{
+					Phase: octorunv1alpha1.RunnerActivePhase,
+				}
+				return runner
+			},
+			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
+				cmockr.GetRunner(gomock.Any(), "https://github.com/octorun", int64(1)).Return(&gogithub.Runner{
+					ID:     gogithub.Int64(1),
+					Status: gogithub.String("online"),
+					Busy:   gogithub.Bool(false),
+				}, nil)
+			},
+			executor: &remoteexec.FakeRemoteExecutor{},
+			want:     reconcile.Result{Requeue: true},
+			wantErr:  false,
 		},
 		{
 			name:           "runner_just_created",

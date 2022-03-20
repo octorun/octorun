@@ -104,7 +104,28 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 		if runner.Status.Phase == octorunv1alpha1.RunnerActivePhase {
 			// If the runner is in the active phase wait until finish its job.
 			log.Info("Runner is in active phase. wait until runner job to be completed before deleting")
-			return ctrl.Result{RequeueAfter: 60 * time.Second}, err
+
+			// Check runner status from Github.
+			runnerid := pointer.Int64Deref(runner.Spec.ID, -1)
+			if runnerid == -1 {
+				// This is unexpected condition when runner has Active phase
+				// but don't have an ID.
+				runner.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+				return ctrl.Result{Requeue: true}, nil
+			}
+
+			ghrunner, err := r.Github.GetRunner(ctx, runner.Spec.URL, runnerid)
+			if err != nil && !(gherrors.IsForbidden(err) || gherrors.IsNotFound(err)) {
+				log.Error(err, "unable to retrieve Runner information from Github")
+				return ctrl.Result{}, err
+			}
+
+			if !ghrunner.GetBusy() {
+				runner.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+				return ctrl.Result{Requeue: true}, nil
+			}
+
+			return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 		}
 
 		log.Info("deleting Runner resources")
