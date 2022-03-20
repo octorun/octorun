@@ -21,6 +21,6 @@ spec:
         insecureSkipVerify: true
   selector:
     matchLabels:
-      app.kubernetes.io/instance: manager
+      app.kubernetes.io/component: controller
       app.kubernetes.io/name: octorun
       app.kubernetes.io/part-of: octorun
