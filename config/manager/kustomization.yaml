@@ -3,6 +3,7 @@ kind: Kustomization
 images:
 - name: manager
   newName: ghcr.io/octorun/manager
+  newTag: main
 resources:
 - manager.yaml
 generatorOptions:

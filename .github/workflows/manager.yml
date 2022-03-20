@@ -63,7 +63,7 @@ jobs:
       uses: redhat-actions/buildah-build@v2
       with:
         image: manager
-        tags: latest
+        tags: main
         containerfiles: |
           ./Dockerfile
     - name: Push Image to Registry
