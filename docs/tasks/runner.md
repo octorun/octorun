@@ -1,4 +1,15 @@
-# Create Your First Runner
+---
+title: "Create Your First Runner"
+date: 2022-03-23T21:01:13+07:00
+lastmod: 2022-03-23T21:01:13+07:00
+draft: false
+images: []
+menu:
+  docs:
+    parent: "tasks"
+weight: 300
+toc: true
+---
 
 ## Before you begin
 
@@ -8,7 +19,7 @@ You need to have a Kubernetes cluster with octorun installed, and the kubectl co
 
 You can spawn and register Github self-hosted runner by creating a Runner object. For example, this YAML file describes a Runner called `runner-sample` that will spawn and registers to <https://github.com/octorun/test-repo> repository with label `runner: myrunner` and runs using ghcr.io/octorun/runner:v2.288.1 runner image
 
-```yaml,editable
+```yaml
 # runner.yaml
 apiVersion: octorun.github.io/v1alpha1
 kind: Runner
@@ -32,7 +43,7 @@ spec:
 
 The output is similar to this:
 
-```console
+```bash
 NAME            RUNNERID   STATUS   ONLINE   AGE
 runner-sample   92         Idle     True     4m59s
 ```
@@ -43,7 +54,7 @@ runner-sample   92         Idle     True     4m59s
 
 The output is similar to this:
 
-```console
+```bash
 Name:         runner-sample
 Namespace:    default
 Labels:       octorun.github.io/runner=myrunner
@@ -82,13 +93,13 @@ Events:
 
 On your browser, you can navigate to `/settings/actions/runners`. In our case <https://github.com/octorun/test-repo/settings/actions/runners>
 
-![Runner on Github](../images/runner-on-github.png)
+![Runner on Github](/docs/images/runner-on-github.png)
 
 ## Trigger a Github Action Workflow
 
 When your Runner assigned a Workflow Job its phase status will become `Active` and then change to `Complete` once it was finished his Workflow Job.
 
-```console
+```bash
 $ kubectl get runner runner-sample --watch
 NAME            RUNNERID   STATUS   ONLINE   AGE
 runner-sample   92         Idle     True     13m
@@ -97,7 +108,7 @@ runner-sample   92         Active   True     14m
 runner-sample   92         Complete   False    14m
 ```
 
-## Deleting a Runner
+## Cleanup
 
 Delete the Runner by name:
 

@@ -1,4 +1,15 @@
-# Create set of Runners using RunnerSet
+---
+title: "Create Runners using RunnerSet"
+date: 2022-03-23T21:01:15+07:00
+lastmod: 2022-03-23T21:01:15+07:00
+draft: false
+images: []
+menu:
+  docs:
+    parent: "tasks"
+weight: 310
+toc: true
+---
 
 ## Before you begin
 
@@ -8,7 +19,7 @@ You need to have a Kubernetes cluster with octorun installed, and the kubectl co
 
 You can spawn and register identically multiple Github self-hosted runners by creating a RunnerSet object. For example, this YAML file describes a RunnerSet called `runnerset-sample` that will spawn and registers 3 runners to <https://github.com/octorun/test-repo> repository with label `runnerset: myrunnerset`.
 
-```yaml,editable
+```yaml
 # runnerset.yaml
 apiVersion: octorun.github.io/v1alpha1
 kind: RunnerSet
@@ -39,7 +50,7 @@ spec:
 
 The output is similar to this:
 
-```console
+```bash
 NAME               RUNNERS   IDLE   ACTIVE   AGE
 runnerset-sample   3         3               87s
 ```
@@ -50,7 +61,7 @@ runnerset-sample   3         3               87s
 
 The output is similar to this:
 
-```console
+```bash
 NAME                     RUNNERID   STATUS   ONLINE   AGE
 runnerset-sample-52sbk   94         Idle     True     3m34s
 runnerset-sample-nkd65   95         Idle     True     3m34s
@@ -63,7 +74,7 @@ runnerset-sample-zfnsn   93         Idle     True     3m34s
 
 The output is similar to this:
 
-```console
+```bash
 Name:         runnerset-sample
 Namespace:    default
 Labels:       <none>
@@ -104,7 +115,7 @@ You can easily adjust the number of runners managed by RunnerSet using `kubectl 
 
 Once one of your Runners managed by RunnerSet finishes his Workflow Job the RunnerSet controller will replace it. Because Runner itself is designed to be ephemeral so each Runners managed by RunnerSet is always ready to be assigned a Workflow Job.
 
-## Deleting a RunnerSet
+## Cleanup
 
 Delete the Runner by name:
 
