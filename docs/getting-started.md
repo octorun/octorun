@@ -1,4 +1,13 @@
-# Getting Started with Octorun
+---
+title: "Getting Started"
+date: 2022-03-23T20:44:51+07:00
+lastmod: 2022-03-23T20:44:51+07:00
+draft: false
+images: []
+toc: true
+weight: 200
+toc: true
+---
 
 ## Prerequisites
 
@@ -9,14 +18,14 @@
 
 Prepare Github credentials as environment variable. 
 
-```shell
+```bash
 export GITHUB_ACCESS_TOKEN=[YOUR_GITHUB_ACCESS_TOKEN]
 export GITHUB_WEBHOOK_SECRET=[YOUR_GITHUB_WEBHOOK_SECRET]
 ```
 
 To install octorun simply run.
 
-```shell
+```bash
 kubectl apply -k https://github.com/octorun/octorun.git//config/default
 ```
 
@@ -24,7 +33,7 @@ By default, namespaced octorun component will be installed under `ocotorun-syste
 
 ## Verify the installation
 
-```shell
+```bash
 kubectl get all -n octorun-system
 NAME                                   READY   STATUS    RESTARTS   AGE
 pod/octorun-manager-5f7b78c6cb-pmgvv   2/2     Running   0          23s
@@ -47,21 +56,21 @@ Since Github need an accessible URL for publishing Webhook event. You need to pu
 
 To patch the `octorun-manager` service to be `Loadbalancer` type.
 
-```shell
+```bash
 kubectl patch -n octorun-system service/octorun-manager --type='json' -p='[{"op": "replace", "path": "/spec/type", "value":"LoadBalancer"}]'
 ```
 
 And finally you can create a Github Webhook with the Kubernetes Service External IP or Kubernetes Ingress Address.
 
-```shell
+```bash
 kubectl get -n octorun-system service/octorun-manager
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
 octorun-manager   LoadBalancer   10.98.168.233   172.16.223.192   9090:30944/TCP   14m
 ```
 
 *See: How to create a Github personal access token and webhooks*
-- <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token>
-- <https://docs.github.com/en/developers/webhooks-and-events/webhooks/creating-webhooks>
+- [Creating a personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+- [Creating webhooks](https://docs.github.com/en/developers/webhooks-and-events/webhooks/creating-webhooks)
 
 <!-- References -->
 [cert-manager]: https://cert-manager.io/docs/installation/

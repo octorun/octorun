@@ -56,6 +56,14 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+.PHONY: crdref
+crdref: crdref-gen ## Generate CRDs reference documentation.
+	$(CRD_REF_DOCS) --templates-dir=hack/crd-ref-docs/template \
+	--config=hack/crd-ref-docs/config.yaml \
+	--renderer=markdown \
+	--source-path=api/v1alpha1 \
+	--output-path=docs/reference/api-reference.md
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	@go fmt ./...
@@ -124,6 +132,17 @@ CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0)
 
+CRD_REF_DOCS = $(shell pwd)/bin/crd-ref-docs
+.PHONY: crdref-gen
+crdref-gen: ## Download crd-ref-docs generator locally if necessary.
+	$(call go-get-tool,$(CRD_REF_DOCS),github.com/elastic/crd-ref-docs@latest)
+
+GINKGO = $(shell pwd)/bin/ginkgo
+.PHONY: ginkgo
+ginkgo: ## Download ginkgo locally if necessary.
+	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo@latest)
+
+
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 .PHONY: kustomize
 kustomize: ## Download kustomize locally if necessary.
@@ -133,11 +152,6 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
 envtest: ## Download envtest-setup locally if necessary.
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
-
-GINKGO = $(shell pwd)/bin/ginkgo
-.PHONY: ginkgo
-ginkgo: ## Download ginkgo locally if necessary.
-	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo@latest)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
