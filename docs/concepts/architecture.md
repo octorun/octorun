@@ -9,9 +9,8 @@ images: []
 menu:
   docs:
     parent: "concepts"
-weight: 100
+weight: 200
 toc: true
-mermaid: true
 ---
 
 ![Octorun Architecture](/docs/images/octorun-architecture.png)
@@ -28,7 +27,7 @@ A CustomResourceDefinition is a built-in resource that lets you extend the Kuber
 
 - **Runner**: represents a single Github self-hosted runner. It holds several fields for Github self-hosted runner creation as well as Pod specification. Runner designed to be immutable: once they are created, they are never updated (except for labels, annotations and status), only deleted.
 
-- **RunnerSet**: provides a declarative Runner deployment strategy. The purpose is to maintain sets of Runners that have the same specification.
+- **RunnerSet**: provides a declarative Runners management such as deployment and scaling of a set of Runners with identical spec.
 
 ### Controller
 
