@@ -24,6 +24,7 @@ GINKGO_FLAGS ?=
 GINKGO_NOCOLOR ?= false
 
 # Image URL to use all building/pushing image targets
+RELEASE_VERSION	?= main
 IMAGE_REGISTRY	?= ghcr.io/octorun
 MANAGER_IMAGE	?= $(IMAGE_REGISTRY)/manager
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -94,8 +95,8 @@ manager: generate fmt vet ## Build manager binary.
 	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=${GOARCH} go build -o bin/manager main.go
 
 .PHONY: manager-image
-manager-image: test ## Build manager container image.
-	docker build -t ${MANAGER_IMAGE} .
+manager-image: ## Build manager container image.
+	docker build -t ${MANAGER_IMAGE}:$(RELEASE_VERSION) .
 
 ##@ Deployment
 
@@ -105,8 +106,8 @@ endif
 
 .PHONY: release
 release: manager-image
-	docker push ${MANAGER_IMAGE}:${RELEASE_VERSION}
-	cd config/release && $(KUSTOMIZE) edit set image ${MANAGER_IMAGE}=${MANAGER_IMAGE}:${RELEASE_VERSION}
+	docker push ${MANAGER_IMAGE}:$(RELEASE_VERSION)
+	cd config/release && $(KUSTOMIZE) edit set image ${MANAGER_IMAGE}=${MANAGER_IMAGE}:$(RELEASE_VERSION)
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
