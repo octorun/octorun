@@ -187,6 +187,7 @@ _Appears in:_
 | `image` _[RunnerImage](#runnerimage)_ | Runner container image specification |
 | `placement` _[RunnerPlacement](#runnerplacement)_ | Placement configuration to pass to kubernetes pod (affinity, node selector, etc). |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#resourcerequirements-v1-core)_ | Compute resources required by runner container. |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to use to run this runner pod. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/ |
 | `securityContext` _[SecurityContext](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#securitycontext-v1-core)_ | SecurityContext holds security configuration that will be applied to the runner container. |
 | `runtimeClassName` _string_ | RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this runner pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. |
 | `volumes` _[Volume](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#volume-v1-core) array_ | List of volumes that can be mounted by runner container belonging to the runner pod. |

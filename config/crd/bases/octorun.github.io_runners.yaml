@@ -1218,6 +1218,10 @@ spec:
                         type: string
                     type: object
                 type: object
+              serviceAccountName:
+                description: 'ServiceAccountName is the name of the ServiceAccount
+                  to use to run this runner pod. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/'
+                type: string
               url:
                 description: 'The github Organization or Repository URL for this runner.
                   Must be a valid Github Org or Repository URL. eg: - "https://github.com/org"

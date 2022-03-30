@@ -396,6 +396,7 @@ func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
 					},
 				},
 			}, runner.Spec.Volumes...),
+			ServiceAccountName: runner.Spec.ServiceAccountName,
 			SecurityContext: &corev1.PodSecurityContext{
 				RunAsUser:    pointer.Int64(1000),
 				RunAsGroup:   pointer.Int64(1000),
