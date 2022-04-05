@@ -3,6 +3,7 @@ module octorun.github.io/octorun
 go 1.17
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v41 v41.0.0
 	github.com/google/uuid v1.1.2

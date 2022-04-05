@@ -105,6 +105,9 @@ var _ = BeforeSuite(func() {
 		APIEndpoint: "https://api.github.com/",
 	}
 
+	ghclient, err := gh.GetClient()
+	Expect(err).ToNot(HaveOccurred())
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 	})
@@ -113,7 +116,7 @@ var _ = BeforeSuite(func() {
 	err = (&RunnerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Github:   gh.GetClient(),
+		Github:   ghclient,
 		Executor: pod.ExecutorManagedBy(mgr),
 		Recorder: new(record.FakeRecorder),
 	}).SetupWithManager(ctx, mgr)

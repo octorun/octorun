@@ -98,10 +98,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	ghclient, err := opts.Github.GetClient()
+	if err != nil {
+		setupLog.Error(err, "unable to set up github client")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.RunnerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Github:   opts.Github.GetClient(),
+		Github:   ghclient,
 		Executor: pod.ExecutorManagedBy(mgr),
 		Recorder: mgr.GetEventRecorderFor(controllers.RunnerController),
 	}).SetupWithManager(ctx, mgr); err != nil {
