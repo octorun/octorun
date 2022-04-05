@@ -18,7 +18,7 @@ package client
 
 import (
 	"context"
-	"net/http"
+	"errors"
 	"net/url"
 
 	"github.com/google/go-github/v41/github"
@@ -29,43 +29,74 @@ type Client struct {
 	*github.Client
 }
 
-type clientOption struct {
-	endpoint string
-	token    string
+type Opts struct {
+	endpoint      string
+	personalToken string
+
+	appID          int64
+	appKey         string
+	installationID string
 }
 
-type ClientOption func(o *clientOption)
+type ClientOption func(o *Opts)
 
-func New(opts ...ClientOption) *Client {
-	var (
-		httpClient = &http.Client{}
-		option     clientOption
-	)
-
+func New(opts ...ClientOption) (*Client, error) {
+	var option Opts
 	for _, o := range opts {
 		o(&option)
 	}
 
-	if option.token != "" {
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: option.token})
-		httpClient = oauth2.NewClient(context.Background(), ts)
+	baseURL, err := url.Parse(option.endpoint)
+	if err != nil {
+		return nil, err
 	}
 
-	client := github.NewClient(httpClient)
-	client.BaseURL, _ = url.Parse(option.endpoint)
+	var ts oauth2.TokenSource
+	if option.personalToken != "" {
+		ts = newPersonalTokenSource(option.personalToken)
+	} else if option.appID != 0 && option.appKey != "" && option.installationID != "" {
+		ts, err = newInstallationTokenSource(baseURL.String(), option.appID, option.appKey, option.installationID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("unable to authenticate Github Client.")
+	}
+
+	hc := oauth2.NewClient(context.Background(), ts)
+	client := github.NewClient(hc)
+	client.BaseURL = baseURL
 	return &Client{
 		Client: client,
-	}
-}
-
-func WithAccessToken(token string) ClientOption {
-	return func(o *clientOption) {
-		o.token = token
-	}
+	}, nil
 }
 
 func WithEndpoint(endpoint string) ClientOption {
-	return func(o *clientOption) {
+	return func(o *Opts) {
 		o.endpoint = endpoint
+	}
+}
+
+func WithAppID(id int64) ClientOption {
+	return func(o *Opts) {
+		o.appID = id
+	}
+}
+
+func WithAppPrivateKey(key string) ClientOption {
+	return func(o *Opts) {
+		o.appKey = key
+	}
+}
+
+func WithInstallationID(id string) ClientOption {
+	return func(o *Opts) {
+		o.installationID = id
+	}
+}
+
+func WithPersonalAccessToken(token string) ClientOption {
+	return func(o *Opts) {
+		o.personalToken = token
 	}
 }
