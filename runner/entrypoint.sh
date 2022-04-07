@@ -82,7 +82,7 @@ source /runner/env.sh
   --labels "${RUNNER_LABELS}" \
   --runnergroup "${RUNNER_GROUP:-Default}" \
   --work "${RUNNER_WORKDIR:-_work}" \
-  --replace --ephemeral > /dev/null & wait $!
+  --replace --ephemeral --disableupdate > /dev/null & wait $!
 
 trap 'runner::cleanup; exit 130' INT
 trap 'runner::cleanup; exit 143' TERM
