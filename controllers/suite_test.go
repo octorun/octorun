@@ -100,12 +100,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(crclient).NotTo(BeNil())
 
-	gh := &github.Options{
+	gh, err := github.New(&github.Options{
 		AccessToken: os.Getenv("TEST_GITHUB_ACCESS_TOKEN"),
 		APIEndpoint: "https://api.github.com/",
-	}
-
-	ghclient, err := gh.GetClient()
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -116,7 +114,7 @@ var _ = BeforeSuite(func() {
 	err = (&RunnerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Github:   ghclient,
+		Github:   gh.GetClient(),
 		Executor: pod.ExecutorManagedBy(mgr),
 		Recorder: new(record.FakeRecorder),
 	}).SetupWithManager(ctx, mgr)

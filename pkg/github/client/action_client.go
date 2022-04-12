@@ -24,6 +24,11 @@ import (
 	"github.com/google/go-github/v41/github"
 )
 
+type ActionClient interface {
+	GetRunner(ctx context.Context, runnerURL string, runnerID int64) (Runner, error)
+	CreateRunnerToken(ctx context.Context, runnerURL string) (RunnerToken, error)
+}
+
 type Runner interface {
 	GetName() string
 	GetBusy() bool
