@@ -18,9 +18,6 @@ package github
 
 import (
 	"flag"
-
-	"octorun.github.io/octorun/pkg/github/client"
-	"octorun.github.io/octorun/pkg/github/webhook"
 )
 
 type Options struct {
@@ -46,22 +43,4 @@ func (o *Options) BindFlags(fs *flag.FlagSet) {
 	fs.StringVar(&o.WebhookAddress, "github-webook-address", ":9090", "The Address for Github webhook server.")
 	fs.StringVar(&o.WebhookPath, "github-webhook-path", "/", "The url path for Github webhook handler.")
 	fs.StringVar(&o.WebhookSecret, "github-webhook-secret", "", "The Github webhook secret.")
-}
-
-func (o *Options) GetClient() (*client.Client, error) {
-	return client.New(
-		client.WithEndpoint(o.APIEndpoint),
-		client.WithAppID(o.AppID),
-		client.WithAppPrivateKey(o.AppPrivateKey),
-		client.WithInstallationID(o.AppInstallationID),
-		client.WithPersonalAccessToken(o.AccessToken),
-	)
-}
-
-func (o *Options) GetWebhookServer() *webhook.Server {
-	return &webhook.Server{
-		Addr:   o.WebhookAddress,
-		Path:   o.WebhookPath,
-		Secret: o.WebhookSecret,
-	}
 }

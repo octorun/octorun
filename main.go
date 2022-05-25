@@ -98,7 +98,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ghclient, err := opts.Github.GetClient()
+	gh, err := github.New(&opts.Github)
 	if err != nil {
 		setupLog.Error(err, "unable to set up github client")
 		os.Exit(1)
@@ -107,7 +107,7 @@ func main() {
 	if err = (&controllers.RunnerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Github:   ghclient,
+		Github:   gh.GetClient(),
 		Executor: pod.ExecutorManagedBy(mgr),
 		Recorder: mgr.GetEventRecorderFor(controllers.RunnerController),
 	}).SetupWithManager(ctx, mgr); err != nil {
@@ -139,7 +139,7 @@ func main() {
 
 	if err := (&hooks.GithubHook{
 		Client: mgr.GetClient(),
-	}).SetupWithManager(ctx, mgr, opts.Github.GetWebhookServer()); err != nil {
+	}).SetupWithManager(ctx, mgr, gh.GetWebhookServer()); err != nil {
 		setupLog.Error(err, "unable to set up github webhook")
 		os.Exit(1)
 	}
