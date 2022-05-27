@@ -372,8 +372,9 @@ func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
 								Command: []string{"cat", ".runner"},
 							},
 						},
-						InitialDelaySeconds: 10,
-						PeriodSeconds:       3,
+						InitialDelaySeconds: 5,
+						PeriodSeconds:       10,
+						FailureThreshold:    30,
 					},
 					VolumeMounts: append([]corev1.VolumeMount{
 						{
