@@ -96,14 +96,7 @@ func NewCollector(mgr ctrl.Manager, providers ...Provider) *Collector {
 }
 
 // Describe implements prometheus.Collector.
-func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
-	ctx := context.Background()
-	for _, provider := range c.providers {
-		for _, metric := range c.Scrape(ctx, c.APIReader, provider) {
-			ch <- metric.Desc()
-		}
-	}
-}
+func (c *Collector) Describe(ch chan<- *prometheus.Desc) {}
 
 // Collect implements prometheus.Collector.
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
