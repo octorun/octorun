@@ -25,4 +25,14 @@ const (
 	// AnnotationRunnerTokenExpiresAt is used to note when the registration token will expire.
 	// The runner controller will refresh the token if needed based on this annotation.
 	AnnotationRunnerTokenExpiresAt = "runner.octorun.github.io/token-expires-at"
+
+	// AnnotationRunnerEvictionPolicy used to respect the Kubernetes cluster-autoscaler eviction.
+	// Since the Pod created by Runner is not controlled by Kubernetes workload controller (eg: ReplicaSet, StatefulSet etc)
+	// cluster-autoscaler unable to drain underutilized node.
+	//
+	// The value could be Never or IfNotActive. set this annotation to IfNotActive will annotate the runner Pod
+	// with `cluster-autoscaler.kubernetes.io/safe-to-evict=true` once created and will be removed when Runner become Active (has assigned job)
+	//
+	// NOTE: this annotation is experimental and will be added to Runner Object field if possible in the next API version.
+	AnnotationRunnerEvictionPolicy = "runner.octorun.github.io/eviction-policy"
 )

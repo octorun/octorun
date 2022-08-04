@@ -282,6 +282,20 @@ func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv
 			log.V(1).Info("Runner is busy", "runner", ghrunner.GetName())
 			r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1alpha1.RunnerBusyReason, "Runner got a job.")
 			runner.Status.Phase = octorunv1alpha1.RunnerActivePhase
+			if ep, ok := runner.GetAnnotations()[octorunv1alpha1.AnnotationRunnerEvictionPolicy]; ok && ep == "IfNotActive" {
+				runnerPodPatch := client.MergeFrom(runnerPod.DeepCopyObject().(client.Object))
+				annotation := runnerPod.GetAnnotations()
+				if annotation == nil {
+					annotation = make(map[string]string)
+				}
+
+				annotation["cluster-autoscaler.kubernetes.io/safe-to-evict"] = "false"
+				runnerPod.SetAnnotations(annotation)
+				if err := r.Patch(ctx, runnerPod, runnerPodPatch); err != nil {
+					log.Error(err, "unable to annotate runner pod", "pod", runnerPod.Name)
+					return ctrl.Result{}, err
+				}
+			}
 		}
 
 		return ctrl.Result{}, nil
@@ -312,6 +326,11 @@ func secretForRunner(runner *octorunv1alpha1.Runner) *corev1.Secret {
 }
 
 func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
+	annotation := make(map[string]string)
+	if ep, ok := runner.GetAnnotations()[octorunv1alpha1.AnnotationRunnerEvictionPolicy]; ok && ep == "IfNotActive" {
+		annotation["cluster-autoscaler.kubernetes.io/safe-to-evict"] = "true"
+	}
+
 	runnerLabels := make([]string, 0)
 	for k, v := range runner.ObjectMeta.Labels {
 		if !strings.HasPrefix(k, octorunv1alpha1.LabelPrefix) {
@@ -324,9 +343,10 @@ func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      runner.Name,
-			Namespace: runner.Namespace,
-			Labels:    runner.Labels,
+			Name:        runner.Name,
+			Namespace:   runner.Namespace,
+			Labels:      runner.Labels,
+			Annotations: annotation,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy:    corev1.RestartPolicyOnFailure,

@@ -238,6 +238,41 @@ var _ = Describe("RunnerReconciler", func() {
 				Expect(apierrors.IsNotFound(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod))).To(BeTrue())
 			})
 		})
+
+		Context("When Runner has eviction-policy annotation", func() {
+			BeforeEach(func() {
+				runner.SetAnnotations(map[string]string{
+					octorunv1alpha1.AnnotationRunnerEvictionPolicy: "IfNotActive",
+				})
+			})
+
+			It("Should create Pod with annotation `cluster-autoscaler.kubernetes.io/safe-to-evict=true`", func() {
+				By("Ensuring new Runner has been created successfully")
+				Eventually(func() error {
+					return crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)
+				}, timeout, interval).ShouldNot(HaveOccurred())
+
+				secret := secretForRunner(runner)
+				runnerpod := podForRunner(runner)
+
+				By("Waiting Registration Token Secret created")
+				Eventually(func() error {
+					return crclient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+				}, timeout, interval).ShouldNot(HaveOccurred())
+
+				By("Waiting until Runner Pod become Running and Ready")
+				Eventually(func() bool {
+					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod)).NotTo(HaveOccurred())
+					return runnerpod.Status.Phase == corev1.PodRunning && pod.PodConditionIsReady(runnerpod)
+				}, timeout, interval).Should(BeTrue())
+
+				By("Ensuring new runner Pod has `cluster-autoscaler.kubernetes.io/safe-to-evict` annotation")
+				Eventually(func() string {
+					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod)).NotTo(HaveOccurred())
+					return runnerpod.GetAnnotations()["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+				}, timeout, interval).Should(Equal("true"))
+			})
+		})
 	})
 })
 
