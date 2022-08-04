@@ -140,7 +140,7 @@ func (r *RunnerSetReconciler) findRunners(ctx context.Context, runnerset *octoru
 			activeRunners += 1
 		case octorunv1alpha1.RunnerCompletePhase:
 			log.V(1).Info("deleting Runner that has Complete phase", "runner", runner)
-			if err := r.Delete(ctx, runner); err != nil {
+			if err := r.Delete(ctx, runner); client.IgnoreNotFound(err) != nil {
 				log.Error(err, "unable to delete complete runner", "runner", runner)
 			}
 
