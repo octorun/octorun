@@ -62,7 +62,7 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 
-	srv := http.Server{
+	srv := http.Server{ //nolint:gosec // TODO(prksu): Fix this
 		Handler: s.mux,
 	}
 
