@@ -38,20 +38,12 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [lint, verify]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Go Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          cache: true
       - name: Build binary
         run: |
           make manager
@@ -59,7 +51,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [test, test-integration]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: build-image
         name: Build Image
         uses: redhat-actions/buildah-build@v2
@@ -80,20 +72,20 @@ jobs:
   lint:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
       - name: Run linters
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: v1.48.0
   test:
     runs-on: ubuntu-20.04
     needs: [build]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Go Cache
         uses: actions/cache@v2
         with:
@@ -114,20 +106,12 @@ jobs:
     needs: [build]
     if: ${{ github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Go Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          cache: true
       - name: Setup Kind
         uses: engineerd/setup-kind@v0.5.0
         with:
@@ -152,20 +136,12 @@ jobs:
   verify:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Go Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          cache: true
       - name: Verify Tools
         run: |
           make controller-gen
