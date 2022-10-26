@@ -20,22 +20,19 @@ jobs:
       RUNNER_VERSION: ${{ steps.find-runner-release.outputs.RUNNER_VERSION }}
       RUNNER_SEMANTIC_VERSION: ${{ steps.find-runner-release.outputs.RUNNER_SEMANTIC_VERSION }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: find-runner-release
         name: Find runner release
         uses: actions/github-script@v6
         with:
           script: |
-            const releases = await github.rest.repos.listReleases({
+            const releaseLatest = await github.request('GET /repos/{owner}/{repo}/releases/latest', {
                 owner: "actions",
                 repo: "runner",
-                per_page: 1,
-                page: 1
             })
 
-            const releaseLatest = releases.data.shift()
-            core.setOutput("RUNNER_VERSION", releaseLatest.name)
-            core.setOutput("RUNNER_SEMANTIC_VERSION", releaseLatest.name.replace(/^(v)/,""))
+            core.setOutput("RUNNER_VERSION", releaseLatest.data.name)
+            core.setOutput("RUNNER_SEMANTIC_VERSION", releaseLatest.data.name.replace(/^(v)/,""))
       - id: build-image
         name: Build Image
         uses: redhat-actions/buildah-build@v2
@@ -61,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-image]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: build-image
         name: Build Image
         uses: redhat-actions/buildah-build@v2
