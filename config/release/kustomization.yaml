@@ -5,4 +5,4 @@ resources:
 images:
 - name: ghcr.io/octorun/manager
   newName: ghcr.io/octorun/manager
-  newTag: v0.1.0
+  newTag: v0.1.1
