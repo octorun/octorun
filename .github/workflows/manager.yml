@@ -86,19 +86,11 @@ jobs:
     needs: [build]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Go Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          cache: true
       - name: Run Tests
         run: make test TEST_FLAGS='-v'
   test-integration:
