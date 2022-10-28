@@ -29,7 +29,7 @@ on:
       - "!Makefile"
       - "!Tiltfile"
 env:
-  GOLANG_VERSION: 1.17
+  GOLANG_VERSION: 1.19
   KIND_NAME: default
   KIND_IMAGE: kindest/node:v1.23.4
   KIND_VERSION: v0.12.0

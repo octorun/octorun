@@ -43,7 +43,7 @@ local_resource("octorun-manager-binary",
                labels=[])
 
 dockerfile = """
-FROM golang:1.17 as tilt-helper
+FROM golang:1.19 as tilt-helper
 # Support live reloading with Tilt
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/tilt-dev/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/tilt-dev/rerun-process-wrapper/master/start.sh && \

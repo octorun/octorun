@@ -17,7 +17,7 @@ Most of development process can be done using `make` command. Run `make help` to
 
 ## Prerequisites
 
-- Install [go][go] v1.17+
+- Install [go][go] v1.19+
 - Install [docker][docker]
 - Install [kubectl][kubectl] v1.22+
 - Install Kubernetes cluster for development (eg: [kind][kind], [minikube][minikube], [docker-desktop][docker-desktop])
