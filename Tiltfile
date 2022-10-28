@@ -13,6 +13,7 @@ load('ext://cert_manager', 'deploy_cert_manager')
 deploy_cert_manager()
 
 local("make kustomize", quiet=True)
+local("make kubeprom", quiet=True)
 
 manager_deps = ["api", "controllers",
                 "webhooks", "go.mod", "go.sum", "main.go"]
@@ -56,6 +57,36 @@ COPY --from=tilt-helper /restart.sh .
 COPY manager .
 """
 
+prometheus_adapter_role_binding = """
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: prometheus-adapter-octorun-runner-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: octorun-runner-viewer-role
+subjects:
+- kind: ServiceAccount
+  name: prometheus-adapter
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: prometheus-adapter-octorun-runnerset-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: octorun-runnerset-viewer-role
+subjects:
+- kind: ServiceAccount
+  name: prometheus-adapter
+  namespace: monitoring
+"""
+
 docker_build(
     ref="ghcr.io/octorun/manager",
     context="bin/",
@@ -68,8 +99,8 @@ docker_build(
         run("sh /restart.sh"),
     ])
 
-
 k8s_yaml(fixup_run_as_nonroot(kustomize("config/default")))
+k8s_yaml(blob(prometheus_adapter_role_binding))
 k8s_resource('octorun-manager', resource_deps=['octorun-manifest', 'octorun-manager-binary'], objects=[
     "octorun-system:namespace",
     "octorun-serving-cert:certificate",
@@ -91,6 +122,8 @@ k8s_resource('octorun-manager', resource_deps=['octorun-manifest', 'octorun-mana
     "octorun-leader-election-rolebinding:rolebinding",
     "runners.octorun.github.io:customresourcedefinition",
     "runnersets.octorun.github.io:customresourcedefinition",
+    "prometheus-adapter-octorun-runner-viewer:clusterrolebinding",
+    "prometheus-adapter-octorun-runnerset-viewer:clusterrolebinding",
     "octorun-mutating-webhook-configuration:mutatingwebhookconfiguration",
     "octorun-validating-webhook-configuration:validatingwebhookconfiguration",
 ])
