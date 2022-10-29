@@ -57,6 +57,18 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+.PHONY: kubeprom
+kubeprom: ## Generate minimal kube-prometheus stack manifests. Generated manifests intended only for development purpose.
+	GOBIN=$(LOCALBIN) go install github.com/brancz/gojsontoyaml@latest
+	GOBIN=$(LOCALBIN) go install github.com/google/go-jsonnet/cmd/jsonnet@latest
+	GOBIN=$(LOCALBIN) go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest
+ifeq (,$(wildcard hack/kube-prometheus/vendor))
+	@cd hack/kube-prometheus && $(LOCALBIN)/jb update
+endif
+	@rm -rf hack/kube-prometheus/manifests && mkdir -p hack/kube-prometheus/manifests/setup
+	$(LOCALBIN)/jsonnet -J hack/kube-prometheus/vendor -m hack/kube-prometheus/manifests hack/kube-prometheus/kubeprom.jsonnet | xargs -I{} sh -c 'cat {} | $(LOCALBIN)/gojsontoyaml > {}.yaml' -- {}
+	@find hack/kube-prometheus/manifests -type f ! -name '*.yaml' -delete
+
 .PHONY: crdref
 crdref: crdref-gen ## Generate CRDs reference documentation.
 	$(CRD_REF_DOCS) --templates-dir=hack/crd-ref-docs/template \
