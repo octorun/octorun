@@ -17,15 +17,15 @@ Most of development process can be done using `make` command. Run `make help` to
 
 ## Prerequisites
 
-- Install [go][go] v1.17+
+- Install [go][go] v1.19+
 - Install [docker][docker]
-- Install [kubectl][kubectl] v1.22+
+- Install [kubectl][kubectl] v1.25+
 - Install Kubernetes cluster for development (eg: [kind][kind], [minikube][minikube], [docker-desktop][docker-desktop])
 - Install [tilt][tilt]
 
 ## Getting Started
 
-We are using [tilt.dev][tilt] for rapid iterative development. To start tilt it's quite simple just run `tilt up`. 
+We are using [tilt.dev][tilt] for rapid iterative development.
 
 *See: <https://docs.tilt.dev/> for tilt documentations*
 
@@ -36,13 +36,7 @@ export GITHUB_ACCESS_TOKEN=[YOUR_GITHUB_ACCESS_TOKEN]
 export GITHUB_WEBHOOK_SECRET=[YOUR_GITHUB_WEBHOOK_SECRET]
 ```
 
-Besides directly invoking `tilt up` command we also have a Makefile target to start the tilt.
-
-```bash
-make dev
-```
-
-The command above will start the tilt and teardown the tilt when receive an EXIT signal (ctrl+c)
+To start tilt it's quite simple just run `tilt up`.
 
 ## Testing
 

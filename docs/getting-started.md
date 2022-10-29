@@ -11,7 +11,7 @@ toc: true
 
 ## Prerequisites
 
-- Install [kubectl][kubectl] v1.22+
+- Install [kubectl][kubectl] v1.25+
 - A Kubernetes Clsuter with installed:
     - [cert-manager][cert-manager]: To issuing certificates for `admission-webhook` service
     - [prometheus][prometheus] and [prometheus-adapter][prometheus-adapter]: To collect Octorun state metrics and serve it as Kubernetes [custom.metrics.k8s.io][custom-metrics] API. [kube-prometheus][kube-prometheus] stack is easy way to install them. This stack is used for `HorizontalPodAutoscaler` work for `RunnerSet`
