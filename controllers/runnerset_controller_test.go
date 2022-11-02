@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/util"
 )
 
@@ -55,7 +55,7 @@ var _ = Describe("RunnerSetReconciler", func() {
 	var (
 		ctx       = context.Background()
 		selector  metav1.LabelSelector
-		runnerset *octorunv1alpha1.RunnerSet
+		runnerset *octorunv1.RunnerSet
 	)
 
 	BeforeEach(func() {
@@ -65,21 +65,21 @@ var _ = Describe("RunnerSetReconciler", func() {
 			},
 		}
 
-		runnerset = &octorunv1alpha1.RunnerSet{
+		runnerset = &octorunv1.RunnerSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-runnerset-" + util.RandomString(6),
 				Namespace: testns.GetName(),
 			},
-			Spec: octorunv1alpha1.RunnerSetSpec{
+			Spec: octorunv1.RunnerSetSpec{
 				Runners:  pointer.Int32(3),
 				Selector: selector,
-				Template: octorunv1alpha1.RunnerTemplateSpec{
+				Template: octorunv1.RunnerTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: selector.MatchLabels,
 					},
-					Spec: octorunv1alpha1.RunnerSpec{
+					Spec: octorunv1.RunnerSpec{
 						URL: os.Getenv("TEST_GITHUB_URL"),
-						Image: octorunv1alpha1.RunnerImage{
+						Image: octorunv1.RunnerImage{
 							Name:       "ghcr.io/octorun/runner",
 							PullPolicy: corev1.PullIfNotPresent,
 						},
@@ -105,10 +105,10 @@ var _ = Describe("RunnerSetReconciler", func() {
 
 	Describe("Reconcile", func() {
 
-		WaitRunnersToBeSynced := func(runnerset *octorunv1alpha1.RunnerSet) {
+		WaitRunnersToBeSynced := func(runnerset *octorunv1.RunnerSet) {
 			Eventually(func() bool {
 				var runnerCount int32
-				runnerList := &octorunv1alpha1.RunnerList{}
+				runnerList := &octorunv1.RunnerList{}
 				Expect(crclient.List(ctx, runnerList, client.MatchingLabels(selector.MatchLabels))).To(Succeed())
 				for i := range runnerList.Items {
 					runner := &runnerList.Items[i]
@@ -121,9 +121,9 @@ var _ = Describe("RunnerSetReconciler", func() {
 			}, timeout, interval).Should(BeTrue())
 		}
 
-		WaitRunnersBecomeIdle := func(runnerset *octorunv1alpha1.RunnerSet) {
+		WaitRunnersBecomeIdle := func(runnerset *octorunv1.RunnerSet) {
 			Eventually(func() bool {
-				runnerList := &octorunv1alpha1.RunnerList{}
+				runnerList := &octorunv1.RunnerList{}
 				Expect(crclient.List(ctx, runnerList, client.MatchingLabels(selector.MatchLabels))).To(Succeed())
 				for i := range runnerList.Items {
 					runner := &runnerList.Items[i]
@@ -131,7 +131,7 @@ var _ = Describe("RunnerSetReconciler", func() {
 						continue
 					}
 
-					if runner.Status.Phase == octorunv1alpha1.RunnerIdlePhase {
+					if runner.Status.Phase == octorunv1.RunnerIdlePhase {
 						continue
 					}
 					return false
@@ -209,70 +209,70 @@ var _ = Describe("RunnerSetReconciler", func() {
 
 func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
-	runnerListForRunnerSet := func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
+	runnerListForRunnerSet := func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
 		runners := int(pointer.Int32Deref(rs.Spec.Runners, 0))
-		items := make([]octorunv1alpha1.Runner, 0, runners)
+		items := make([]octorunv1.Runner, 0, runners)
 		for i := 0; i < runners; i++ {
-			items = append(items, octorunv1alpha1.Runner{
+			items = append(items, octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            rs.Name + "-" + strconv.Itoa(i),
 					Namespace:       rs.Namespace,
 					Labels:          rs.Spec.Selector.MatchLabels,
 					OwnerReferences: rs.GetOwnerReferences(),
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: rs.Spec.Template.Spec.URL,
 				},
 			})
 		}
 
-		return &octorunv1alpha1.RunnerList{
+		return &octorunv1.RunnerList{
 			Items: items,
 		}
 	}
 
 	tests := []struct {
 		name         string
-		runnersetFn  func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet
-		runnerListFn func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList
+		runnersetFn  func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet
+		runnerListFn func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList
 		want         ctrl.Result
 		wantErr      bool
 	}{
 		{
 			name:         "runnerset_just_created",
-			runnersetFn:  func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList { return &octorunv1alpha1.RunnerList{} },
+			runnersetFn:  func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList { return &octorunv1.RunnerList{} },
 			want:         reconcile.Result{},
 			wantErr:      false,
 		},
 		{
 			name:         "runnerset_not_found",
-			runnersetFn:  func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return &octorunv1alpha1.RunnerSet{} },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList { return &octorunv1alpha1.RunnerList{} },
+			runnersetFn:  func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return &octorunv1.RunnerSet{} },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList { return &octorunv1.RunnerList{} },
 			want:         reconcile.Result{},
 			wantErr:      false,
 		},
 		{
 			name: "runnerset_has_deletion_timestamp",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet {
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet {
 				now := metav1.Now()
 				rs.DeletionTimestamp = &now
 				return rs
 			},
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList { return &octorunv1alpha1.RunnerList{} },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList { return &octorunv1.RunnerList{} },
 			want:         reconcile.Result{},
 			wantErr:      false,
 		},
 		{
 			name:        "runners_has_idle_phase",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
-				var items []octorunv1alpha1.Runner
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
+				var items []octorunv1.Runner
 				runnerList := runnerListForRunnerSet(rs)
 				for _, item := range runnerList.Items {
-					item.Status.Phase = octorunv1alpha1.RunnerIdlePhase
+					item.Status.Phase = octorunv1.RunnerIdlePhase
 					items = append(items, item)
 				}
 
@@ -284,12 +284,12 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:        "runners_has_active_phase",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
-				var items []octorunv1alpha1.Runner
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
+				var items []octorunv1.Runner
 				runnerList := runnerListForRunnerSet(rs)
 				for _, item := range runnerList.Items {
-					item.Status.Phase = octorunv1alpha1.RunnerActivePhase
+					item.Status.Phase = octorunv1.RunnerActivePhase
 					items = append(items, item)
 				}
 
@@ -301,12 +301,12 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:        "runners_has_complete_phase",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
-				var items []octorunv1alpha1.Runner
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
+				var items []octorunv1.Runner
 				runnerList := runnerListForRunnerSet(rs)
 				for _, item := range runnerList.Items {
-					item.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+					item.Status.Phase = octorunv1.RunnerCompletePhase
 					items = append(items, item)
 				}
 
@@ -318,27 +318,27 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:        "too_many_runners",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
 				now := metav1.Now()
-				var items []octorunv1alpha1.Runner
+				var items []octorunv1.Runner
 				runnerList := runnerListForRunnerSet(rs)
 				items = append(items, runnerList.Items...)
-				items = append(items, octorunv1alpha1.Runner{
+				items = append(items, octorunv1.Runner{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:            rs.Name + "-" + strconv.Itoa(len(items)+1),
 						Namespace:       rs.Namespace,
 						Labels:          rs.Spec.Selector.MatchLabels,
 						OwnerReferences: rs.GetOwnerReferences(),
 					},
-					Spec: octorunv1alpha1.RunnerSpec{
+					Spec: octorunv1.RunnerSpec{
 						URL: rs.Spec.Template.Spec.URL,
 					},
-					Status: octorunv1alpha1.RunnerStatus{
-						Phase: octorunv1alpha1.RunnerActivePhase,
+					Status: octorunv1.RunnerStatus{
+						Phase: octorunv1.RunnerActivePhase,
 					},
 				})
-				items = append(items, octorunv1alpha1.Runner{
+				items = append(items, octorunv1.Runner{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              rs.Name + "-" + strconv.Itoa(len(items)+1),
 						Namespace:         rs.Namespace,
@@ -346,7 +346,7 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 						OwnerReferences:   rs.GetOwnerReferences(),
 						DeletionTimestamp: &now,
 					},
-					Spec: octorunv1alpha1.RunnerSpec{
+					Spec: octorunv1.RunnerSpec{
 						URL: rs.Spec.Template.Spec.URL,
 					},
 				})
@@ -359,12 +359,12 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:        "oneof_runners_has_ownerref_but_not_this_runnerset",
-			runnersetFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerSet { return rs },
-			runnerListFn: func(rs *octorunv1alpha1.RunnerSet) *octorunv1alpha1.RunnerList {
-				var items []octorunv1alpha1.Runner
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet { return rs },
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
+				var items []octorunv1.Runner
 				runnerList := runnerListForRunnerSet(rs)
 				items = append(items, runnerList.Items...)
-				items = append(items, octorunv1alpha1.Runner{
+				items = append(items, octorunv1.Runner{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      rs.Name + "-" + strconv.Itoa(len(items)+1),
 						Namespace: rs.Namespace,
@@ -379,7 +379,7 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 							},
 						},
 					},
-					Spec: octorunv1alpha1.RunnerSpec{
+					Spec: octorunv1.RunnerSpec{
 						URL: rs.Spec.Template.Spec.URL,
 					},
 				})
@@ -393,25 +393,25 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runnerset := tt.runnersetFn(&octorunv1alpha1.RunnerSet{
+			runnerset := tt.runnersetFn(&octorunv1.RunnerSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "runnerset-test",
 					Namespace: "default",
 				},
-				Spec: octorunv1alpha1.RunnerSetSpec{
+				Spec: octorunv1.RunnerSetSpec{
 					Runners: pointer.Int32(3),
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"octorun.github.io/runnerset": "myrunnerset",
 						},
 					},
-					Template: octorunv1alpha1.RunnerTemplateSpec{
+					Template: octorunv1.RunnerTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
 								"octorun.github.io/runnerset": "myrunnerset",
 							},
 						},
-						Spec: octorunv1alpha1.RunnerSpec{
+						Spec: octorunv1.RunnerSpec{
 							URL: "https://github.com/octorun",
 						},
 					},

@@ -47,7 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	mghclient "octorun.github.io/octorun/pkg/github/client/mock"
 	"octorun.github.io/octorun/util"
 	"octorun.github.io/octorun/util/pod"
@@ -62,11 +62,11 @@ var _ = Describe("RunnerReconciler", func() {
 
 	var (
 		ctx    = context.Background()
-		runner *octorunv1alpha1.Runner
+		runner *octorunv1.Runner
 	)
 
 	BeforeEach(func() {
-		runner = &octorunv1alpha1.Runner{
+		runner = &octorunv1.Runner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-runner-" + util.RandomString(6),
 				Namespace: testns.GetName(),
@@ -74,9 +74,9 @@ var _ = Describe("RunnerReconciler", func() {
 					"octorun.github.io/runners": "test-runner",
 				},
 			},
-			Spec: octorunv1alpha1.RunnerSpec{
+			Spec: octorunv1.RunnerSpec{
 				URL: os.Getenv("TEST_GITHUB_URL"),
-				Image: octorunv1alpha1.RunnerImage{
+				Image: octorunv1.RunnerImage{
 					Name:       "ghcr.io/octorun/runner",
 					PullPolicy: corev1.PullIfNotPresent,
 				},
@@ -157,6 +157,12 @@ var _ = Describe("RunnerReconciler", func() {
 					return runnerpod.Status.Phase == corev1.PodRunning && pod.PodConditionIsReady(runnerpod)
 				}, timeout, interval).Should(BeTrue())
 
+				By("Ensuring new runner Pod has `cluster-autoscaler.kubernetes.io/safe-to-evict` annotation")
+				Eventually(func() string {
+					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod)).NotTo(HaveOccurred())
+					return runnerpod.GetAnnotations()["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+				}, timeout, interval).Should(Equal("true"))
+
 				By("Ensure Runner has RunnerID")
 				Eventually(func() bool {
 					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner))
@@ -166,13 +172,13 @@ var _ = Describe("RunnerReconciler", func() {
 				By("Ensure Runner is Online")
 				Eventually(func() bool {
 					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner))
-					return meta.IsStatusConditionTrue(runner.Status.Conditions, octorunv1alpha1.RunnerConditionOnline)
+					return meta.IsStatusConditionTrue(runner.Status.Conditions, octorunv1.RunnerConditionOnline)
 				}, timeout, interval).Should(BeTrue())
 
 				By("Ensure Runner become Idle phase")
 				Eventually(func() bool {
 					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner))
-					return runner.Status.Phase == octorunv1alpha1.RunnerIdlePhase
+					return runner.Status.Phase == octorunv1.RunnerIdlePhase
 				}, timeout, interval).Should(BeTrue())
 			})
 		})
@@ -201,7 +207,7 @@ var _ = Describe("RunnerReconciler", func() {
 				oldsecret := secret.DeepCopy()
 				By("Simulate token expires")
 				secret.SetAnnotations(map[string]string{
-					octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
+					octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
 				})
 				Expect(crclient.Patch(ctx, secret, client.MergeFrom(oldsecret))).To(Succeed())
 
@@ -239,14 +245,12 @@ var _ = Describe("RunnerReconciler", func() {
 			})
 		})
 
-		Context("When Runner has eviction-policy annotation", func() {
+		Context("When EvictionPolicy is Never", func() {
 			BeforeEach(func() {
-				runner.SetAnnotations(map[string]string{
-					octorunv1alpha1.AnnotationRunnerEvictionPolicy: "IfNotActive",
-				})
+				runner.Spec.EvictionPolicy = octorunv1.RunnerEvictionNever
 			})
 
-			It("Should create Pod with annotation `cluster-autoscaler.kubernetes.io/safe-to-evict=true`", func() {
+			It("Should create Pod without annotation `cluster-autoscaler.kubernetes.io/safe-to-evict=true`", func() {
 				By("Ensuring new Runner has been created successfully")
 				Eventually(func() error {
 					return crclient.Get(ctx, client.ObjectKeyFromObject(runner), runner)
@@ -266,11 +270,12 @@ var _ = Describe("RunnerReconciler", func() {
 					return runnerpod.Status.Phase == corev1.PodRunning && pod.PodConditionIsReady(runnerpod)
 				}, timeout, interval).Should(BeTrue())
 
-				By("Ensuring new runner Pod has `cluster-autoscaler.kubernetes.io/safe-to-evict` annotation")
-				Eventually(func() string {
+				By("Ensuring new runner Pod does not has `cluster-autoscaler.kubernetes.io/safe-to-evict` annotation")
+				Eventually(func() bool {
 					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerpod), runnerpod)).NotTo(HaveOccurred())
-					return runnerpod.GetAnnotations()["cluster-autoscaler.kubernetes.io/safe-to-evict"]
-				}, timeout, interval).Should(Equal("true"))
+					_, has := runnerpod.GetAnnotations()["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+					return has
+				}, timeout, interval).Should(BeFalse())
 			})
 		})
 	})
@@ -279,13 +284,13 @@ var _ = Describe("RunnerReconciler", func() {
 func TestRunnerReconciler_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
 	tests := []struct {
 		name           string
-		runnerFn       func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner
-		runnerPodFn    func(runner *octorunv1alpha1.Runner) *corev1.Pod
-		runnerSecretFn func(runner *octorunv1alpha1.Runner) *corev1.Secret
+		runnerFn       func(runner *octorunv1.Runner) *octorunv1.Runner
+		runnerPodFn    func(runner *octorunv1.Runner) *corev1.Pod
+		runnerSecretFn func(runner *octorunv1.Runner) *corev1.Secret
 		expectFn       func(cmockr *mghclient.MockClientMockRecorder)
 		executor       remoteexec.RemoteExecutor
 		want           ctrl.Result
@@ -293,9 +298,9 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 	}{
 		{
 			name:           "runner_not_found",
-			runnerFn:       func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return &octorunv1alpha1.Runner{} },
-			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerFn:       func(runner *octorunv1.Runner) *octorunv1.Runner { return &octorunv1.Runner{} },
+			runnerPodFn:    func(runner *octorunv1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn:       func(cmockr *mghclient.MockClientMockRecorder) {},
 			executor:       &remoteexec.FakeRemoteExecutor{},
 			want:           reconcile.Result{},
@@ -303,13 +308,13 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "runner_has_deletion_timestamp",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner {
 				now := metav1.Now()
 				runner.SetDeletionTimestamp(&now)
 				return runner
 			},
-			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerPodFn:    func(runner *octorunv1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -324,17 +329,17 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "runner_has_deletion_timestamp_and_has_active_phase",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner {
 				now := metav1.Now()
 				runner.Spec.ID = pointer.Int64(1)
 				runner.DeletionTimestamp = &now
-				runner.Status = octorunv1alpha1.RunnerStatus{
-					Phase: octorunv1alpha1.RunnerActivePhase,
+				runner.Status = octorunv1.RunnerStatus{
+					Phase: octorunv1.RunnerActivePhase,
 				}
 				return runner
 			},
-			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerPodFn:    func(runner *octorunv1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.GetRunner(gomock.Any(), "https://github.com/octorun", int64(1)).Return(&gogithub.Runner{
 					ID:     gogithub.Int64(1),
@@ -348,17 +353,17 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name: "runner_has_deletion_timestamp_and_has_active_phase_but_already_completed",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner {
 				now := metav1.Now()
 				runner.Spec.ID = pointer.Int64(1)
 				runner.DeletionTimestamp = &now
-				runner.Status = octorunv1alpha1.RunnerStatus{
-					Phase: octorunv1alpha1.RunnerActivePhase,
+				runner.Status = octorunv1.RunnerStatus{
+					Phase: octorunv1.RunnerActivePhase,
 				}
 				return runner
 			},
-			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerPodFn:    func(runner *octorunv1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.GetRunner(gomock.Any(), "https://github.com/octorun", int64(1)).Return(&gogithub.Runner{
 					ID:     gogithub.Int64(1),
@@ -372,9 +377,9 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:           "runner_just_created",
-			runnerFn:       func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn:    func(runner *octorunv1alpha1.Runner) *corev1.Pod { return &corev1.Pod{} },
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerFn:       func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn:    func(runner *octorunv1.Runner) *corev1.Pod { return &corev1.Pod{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -389,13 +394,13 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_pending_phase",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodPending
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -410,8 +415,8 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_running_phase_but_not_yet_ready",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodRunning
 				pod.Status.Conditions = []corev1.PodCondition{
@@ -422,7 +427,7 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 				}
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -437,8 +442,8 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_running_phase_and_github_runner_online",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodRunning
 				pod.Status.Conditions = []corev1.PodCondition{
@@ -449,7 +454,7 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 				}
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -472,8 +477,8 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_running_phase_and_github_runner_offline",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodRunning
 				pod.Status.Conditions = []corev1.PodCondition{
@@ -484,7 +489,7 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 				}
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -507,8 +512,8 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_running_phase_and_github_runner_busy",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodRunning
 				pod.Status.Conditions = []corev1.PodCondition{
@@ -519,7 +524,7 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 				}
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("faketoken"),
@@ -543,14 +548,14 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 		},
 		{
 			name:     "runnerpod_has_success_phase",
-			runnerFn: func(runner *octorunv1alpha1.Runner) *octorunv1alpha1.Runner { return runner },
-			runnerPodFn: func(runner *octorunv1alpha1.Runner) *corev1.Pod {
+			runnerFn: func(runner *octorunv1.Runner) *octorunv1.Runner { return runner },
+			runnerPodFn: func(runner *octorunv1.Runner) *corev1.Pod {
 				pod := podForRunner(runner)
 				pod.Status.Phase = corev1.PodSucceeded
 				pod.Status.StartTime = &metav1.Time{Time: time.Now()}
 				return pod
 			},
-			runnerSecretFn: func(runner *octorunv1alpha1.Runner) *corev1.Secret { return &corev1.Secret{} },
+			runnerSecretFn: func(runner *octorunv1.Runner) *corev1.Secret { return &corev1.Secret{} },
 			expectFn: func(cmockr *mghclient.MockClientMockRecorder) {
 				cmockr.CreateRunnerToken(gomock.Any(), "https://github.com/octorun").Return(&gogithub.RegistrationToken{
 					Token: gogithub.String("anotherfaketoken"),
@@ -569,17 +574,17 @@ func TestRunnerReconciler_Reconcile(t *testing.T) {
 			mctrl := gomock.NewController(t)
 			mghc := mghclient.NewMockClient(mctrl)
 
-			runner := tt.runnerFn(&octorunv1alpha1.Runner{
+			runner := tt.runnerFn(&octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "runner-test",
 					Namespace: "default",
 					Labels: map[string]string{
-						octorunv1alpha1.LabelRunnerName: "runner-test",
+						octorunv1.LabelRunnerName: "runner-test",
 					},
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun",
-					Image: octorunv1alpha1.RunnerImage{
+					Image: octorunv1.RunnerImage{
 						Name: "ghcr.io/octorun/runner",
 					},
 				},

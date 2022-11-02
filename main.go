@@ -34,6 +34,7 @@ import (
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/controllers"
 	"octorun.github.io/octorun/hooks"
 	"octorun.github.io/octorun/metrics"
@@ -52,7 +53,8 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme)) // Add old version to scheme to enable conversion
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -35,15 +35,15 @@ type RunnerSetWebhook struct {
 	Client client.Reader
 }
 
-// +kubebuilder:webhook:path=/mutate-octorun-github-io-v1alpha1-runnerset,mutating=true,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runnersets,verbs=create;update,versions=v1alpha1,name=mrunnerset.octorun.github.io,admissionReviewVersions=v1
-// +kubebuilder:webhook:path=/validate-octorun-github-io-v1alpha1-runnerset,mutating=false,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runnersets,verbs=create;update,versions=v1alpha1,name=vrunnerset.octorun.github.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-octorun-github-io-v1alpha2-runnerset,mutating=true,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runnersets,verbs=create;update,versions=v1alpha2,name=mrunnerset.octorun.github.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-octorun-github-io-v1alpha2-runnerset,mutating=false,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runnersets,verbs=create;update,versions=v1alpha2,name=vrunnerset.octorun.github.io,admissionReviewVersions=v1
 
 var _ webhook.CustomDefaulter = &RunnerSetWebhook{}
 var _ webhook.CustomValidator = &RunnerSetWebhook{}
 
 func (w *RunnerSetWebhook) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&octorunv1alpha1.RunnerSet{}).
+		For(&octorunv1.RunnerSet{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete()
@@ -51,7 +51,7 @@ func (w *RunnerSetWebhook) SetupWithManager(ctx context.Context, mgr ctrl.Manage
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the type
 func (w *RunnerSetWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	runnerset, ok := obj.(*octorunv1alpha1.RunnerSet)
+	runnerset, ok := obj.(*octorunv1.RunnerSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", obj))
 	}
@@ -64,8 +64,8 @@ func (w *RunnerSetWebhook) Default(ctx context.Context, obj runtime.Object) erro
 		runnerset.Spec.Template.Labels = make(map[string]string)
 	}
 
-	if _, ok := runnerset.Spec.Template.Labels[octorunv1alpha1.LabelRunnerSetName]; !ok {
-		runnerset.Spec.Template.Labels[octorunv1alpha1.LabelRunnerSetName] = runnerset.GetName()
+	if _, ok := runnerset.Spec.Template.Labels[octorunv1.LabelRunnerSetName]; !ok {
+		runnerset.Spec.Template.Labels[octorunv1.LabelRunnerSetName] = runnerset.GetName()
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (w *RunnerSetWebhook) Default(ctx context.Context, obj runtime.Object) erro
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerSetWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	var allErrs field.ErrorList
-	runnerset, ok := obj.(*octorunv1alpha1.RunnerSet)
+	runnerset, ok := obj.(*octorunv1.RunnerSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", obj))
 	}
@@ -95,12 +95,12 @@ func (w *RunnerSetWebhook) ValidateCreate(ctx context.Context, obj runtime.Objec
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerSetWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	var allErrs field.ErrorList
-	_, ok := oldObj.(*octorunv1alpha1.RunnerSet)
+	_, ok := oldObj.(*octorunv1.RunnerSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", oldObj))
 	}
 
-	newRunnerSet, ok := newObj.(*octorunv1alpha1.RunnerSet)
+	newRunnerSet, ok := newObj.(*octorunv1.RunnerSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", newObj))
 	}

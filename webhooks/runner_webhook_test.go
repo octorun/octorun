@@ -30,25 +30,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/util"
 )
 
 var _ = Describe("RunnerWebhook", func() {
 	var (
 		ctx    = context.Background()
-		runner *octorunv1alpha1.Runner
+		runner *octorunv1.Runner
 	)
 
 	BeforeEach(func() {
-		runner = &octorunv1alpha1.Runner{
+		runner = &octorunv1.Runner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-runner-" + util.RandomString(6),
 				Namespace: "default",
 			},
-			Spec: octorunv1alpha1.RunnerSpec{
+			Spec: octorunv1.RunnerSpec{
 				URL: "https://github.com/org/repo",
-				Image: octorunv1alpha1.RunnerImage{
+				Image: octorunv1.RunnerImage{
 					Name: "ghcr.io/octorun/runner:v2.288.1",
 				},
 			},
@@ -110,7 +110,7 @@ var _ = Describe("RunnerWebhook", func() {
 
 func TestRunnerWebhook_Default(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
 	tests := []struct {
 		name    string
@@ -120,21 +120,21 @@ func TestRunnerWebhook_Default(t *testing.T) {
 	}{
 		{
 			name:    "obj_is_not_runner",
-			obj:     &octorunv1alpha1.RunnerSet{},
+			obj:     &octorunv1.RunnerSet{},
 			wantErr: true,
 		},
 		{
 			name: "runner_defaulting_successful",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
 			},
-			want: &octorunv1alpha1.Runner{
+			want: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					Workdir: "_work",
 					Group:   "Default",
 				},
@@ -155,8 +155,8 @@ func TestRunnerWebhook_Default(t *testing.T) {
 				return
 			}
 
-			if !tt.wantErr && !reflect.DeepEqual(tt.obj.(*octorunv1alpha1.Runner).Spec, tt.want.(*octorunv1alpha1.Runner).Spec) {
-				t.Errorf("obj spec = %v, want spec %v", tt.obj.(*octorunv1alpha1.Runner).Spec, tt.want.(*octorunv1alpha1.Runner).Spec)
+			if !tt.wantErr && !reflect.DeepEqual(tt.obj.(*octorunv1.Runner).Spec, tt.want.(*octorunv1.Runner).Spec) {
+				t.Errorf("obj spec = %v, want spec %v", tt.obj.(*octorunv1.Runner).Spec, tt.want.(*octorunv1.Runner).Spec)
 				return
 			}
 		})
@@ -165,7 +165,7 @@ func TestRunnerWebhook_Default(t *testing.T) {
 
 func TestRunnerWebhook_ValidateCreate(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
 	tests := []struct {
 		name    string
@@ -174,26 +174,26 @@ func TestRunnerWebhook_ValidateCreate(t *testing.T) {
 	}{
 		{
 			name:    "obj_is_not_runner",
-			obj:     &octorunv1alpha1.RunnerSet{},
+			obj:     &octorunv1.RunnerSet{},
 			wantErr: true,
 		},
 		{
 			name: "runner_missing_spec_url",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{},
+				Spec: octorunv1.RunnerSpec{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "runner_with_invalid_spec_url",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://google.com",
 				},
 			},
@@ -201,11 +201,11 @@ func TestRunnerWebhook_ValidateCreate(t *testing.T) {
 		},
 		{
 			name: "runner_with_valid_spec",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun",
 				},
 			},
@@ -229,7 +229,7 @@ func TestRunnerWebhook_ValidateCreate(t *testing.T) {
 
 func TestRunnerWebhook_ValidateUpdate(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
 	tests := []struct {
 		name    string
@@ -239,19 +239,19 @@ func TestRunnerWebhook_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name: "old_runner_and_new_runner_is_equal",
-			oldObj: &octorunv1alpha1.Runner{
+			oldObj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun",
 				},
 			},
-			newObj: &octorunv1alpha1.Runner{
+			newObj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun",
 				},
 			},
@@ -259,19 +259,19 @@ func TestRunnerWebhook_ValidateUpdate(t *testing.T) {
 		},
 		{
 			name: "old_runner_and_new_runner_is_different",
-			oldObj: &octorunv1alpha1.Runner{
+			oldObj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun",
 				},
 			},
-			newObj: &octorunv1alpha1.Runner{
+			newObj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "runner-test",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					URL: "https://github.com/octorun/repo",
 				},
 			},
@@ -295,7 +295,7 @@ func TestRunnerWebhook_ValidateUpdate(t *testing.T) {
 
 func TestRunnerWebhook_ValidateDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(octorunv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(octorunv1.AddToScheme(scheme))
 
 	tests := []struct {
 		name    string

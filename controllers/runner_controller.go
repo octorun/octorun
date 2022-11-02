@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/pkg/github"
 	gherrors "octorun.github.io/octorun/pkg/github/errors"
 	"octorun.github.io/octorun/util"
@@ -65,7 +65,7 @@ type RunnerReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *RunnerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&octorunv1alpha1.Runner{}).
+		For(&octorunv1.Runner{}).
 		Owns(&corev1.Pod{}).
 		Complete(r)
 }
@@ -74,7 +74,7 @@ func (r *RunnerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manage
 // move the current state of the cluster closer to the desired state.
 func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	runner := &octorunv1alpha1.Runner{}
+	runner := &octorunv1.Runner{}
 	if err := r.Get(ctx, req.NamespacedName, runner); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Return early if requested runner is not found.
@@ -101,7 +101,7 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 	if !runner.GetDeletionTimestamp().IsZero() {
 		// Handle deletion if we have non zero deletion timestamp
 		// by cleaning up owned resources.
-		if runner.Status.Phase == octorunv1alpha1.RunnerActivePhase {
+		if runner.Status.Phase == octorunv1.RunnerActivePhase {
 			// If the runner is in the active phase wait until finish its job.
 			log.Info("Runner is in active phase. wait until runner job to be completed before deleting")
 
@@ -110,7 +110,7 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 			if runnerid == -1 {
 				// This is unexpected condition when runner has Active phase
 				// but don't have an ID.
-				runner.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+				runner.Status.Phase = octorunv1.RunnerCompletePhase
 				return ctrl.Result{Requeue: true}, nil
 			}
 
@@ -121,7 +121,7 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 			}
 
 			if !ghrunner.GetBusy() {
-				runner.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+				runner.Status.Phase = octorunv1.RunnerCompletePhase
 				return ctrl.Result{Requeue: true}, nil
 			}
 
@@ -194,7 +194,7 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 			//
 			// TODO(prksu): consider introducing terminal failure based on Runner status/condition?
 			log.Error(err, "Unable to create Runner registration token")
-			r.Recorder.Eventf(runner, corev1.EventTypeWarning, octorunv1alpha1.RunnerSecretFailedReason, "Unable to create Runner registration token: %v", err)
+			r.Recorder.Eventf(runner, corev1.EventTypeWarning, octorunv1.RunnerSecretFailedReason, "Unable to create Runner registration token: %v", err)
 			return ctrl.Result{Requeue: false}, nil
 		}
 
@@ -217,17 +217,17 @@ func (r *RunnerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ c
 
 	// All resources already reconciled. Set runner phase to "Pending" for now it will overwritten
 	// based on runner pod phase, conditions and runner status from Github.
-	runner.Status.Phase = octorunv1alpha1.RunnerPendingPhase
+	runner.Status.Phase = octorunv1.RunnerPendingPhase
 	return r.reconcileStatus(ctx, runner, runnerPod)
 }
 
-func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv1alpha1.Runner, runnerPod *corev1.Pod) (ctrl.Result, error) {
+func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv1.Runner, runnerPod *corev1.Pod) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	switch runnerPod.Status.Phase {
 	case corev1.PodPending:
 		// Returns early if Runner Pod is in Pending phase. It will automatically
 		// reconciling again once Runner Pod phase has changed
-		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1alpha1.RunnerPodPendingReason, "Waiting for Pod to be Running.")
+		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1.RunnerPodPendingReason, "Waiting for Pod to be Running.")
 		log.V(1).Info("Runner pod is Pending. Waiting for Runner pod to be Running", "pod", runnerPod.Name)
 		return ctrl.Result{}, nil
 	case corev1.PodRunning:
@@ -259,30 +259,30 @@ func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv
 			// Since no one can retrigger the reconcilication we need to requeue here.
 			log.V(1).Info("Runner is offline", "runner", ghrunner.GetName())
 			meta.SetStatusCondition(&runner.Status.Conditions, metav1.Condition{
-				Type:    octorunv1alpha1.RunnerConditionOnline,
+				Type:    octorunv1.RunnerConditionOnline,
 				Status:  metav1.ConditionFalse,
-				Reason:  octorunv1alpha1.RunnerOfflineReason,
+				Reason:  octorunv1.RunnerOfflineReason,
 				Message: "Github Runner has Offline status",
 			})
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 
 		log.V(1).Info("Runner is online. wait for a job!", "runner", ghrunner.GetName())
-		runner.Status.Phase = octorunv1alpha1.RunnerIdlePhase
-		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1alpha1.RunnerOnlineReason, "Runner wait for a job.")
+		runner.Status.Phase = octorunv1.RunnerIdlePhase
+		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1.RunnerOnlineReason, "Runner wait for a job.")
 		meta.SetStatusCondition(&runner.Status.Conditions, metav1.Condition{
-			Type:    octorunv1alpha1.RunnerConditionOnline,
+			Type:    octorunv1.RunnerConditionOnline,
 			Status:  metav1.ConditionTrue,
-			Reason:  octorunv1alpha1.RunnerOnlineReason,
+			Reason:  octorunv1.RunnerOnlineReason,
 			Message: "Github Runner has Online status",
 		})
 
 		if ghrunner.GetBusy() {
 			// Mark this runner phase into Active once the runner is busy.
 			log.V(1).Info("Runner is busy", "runner", ghrunner.GetName())
-			r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1alpha1.RunnerBusyReason, "Runner got a job.")
-			runner.Status.Phase = octorunv1alpha1.RunnerActivePhase
-			if ep, ok := runner.GetAnnotations()[octorunv1alpha1.AnnotationRunnerEvictionPolicy]; ok && ep == "IfNotActive" {
+			r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1.RunnerBusyReason, "Runner got a job.")
+			runner.Status.Phase = octorunv1.RunnerActivePhase
+			if runner.Spec.EvictionPolicy == octorunv1.RunnerEvictionIfNotActive {
 				runnerPodPatch := client.MergeFrom(runnerPod.DeepCopyObject().(client.Object))
 				annotation := runnerPod.GetAnnotations()
 				if annotation == nil {
@@ -300,12 +300,12 @@ func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv
 
 		return ctrl.Result{}, nil
 	case corev1.PodSucceeded:
-		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1alpha1.RunnerPodSucceededReason, "Runner complete his job.")
-		runner.Status.Phase = octorunv1alpha1.RunnerCompletePhase
+		r.Recorder.Event(runner, corev1.EventTypeNormal, octorunv1.RunnerPodSucceededReason, "Runner complete his job.")
+		runner.Status.Phase = octorunv1.RunnerCompletePhase
 		meta.SetStatusCondition(&runner.Status.Conditions, metav1.Condition{
-			Type:    octorunv1alpha1.RunnerConditionOnline,
+			Type:    octorunv1.RunnerConditionOnline,
 			Status:  metav1.ConditionFalse,
-			Reason:  octorunv1alpha1.RunnerPodSucceededReason,
+			Reason:  octorunv1.RunnerPodSucceededReason,
 			Message: "Runner Pod has Succeeded phase",
 		})
 		return ctrl.Result{}, nil
@@ -314,7 +314,7 @@ func (r *RunnerReconciler) reconcileStatus(ctx context.Context, runner *octorunv
 	}
 }
 
-func secretForRunner(runner *octorunv1alpha1.Runner) *corev1.Secret {
+func secretForRunner(runner *octorunv1.Runner) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      runner.Name + "-registration-token",
@@ -325,19 +325,19 @@ func secretForRunner(runner *octorunv1alpha1.Runner) *corev1.Secret {
 	}
 }
 
-func podForRunner(runner *octorunv1alpha1.Runner) *corev1.Pod {
+func podForRunner(runner *octorunv1.Runner) *corev1.Pod {
 	annotation := make(map[string]string)
-	if ep, ok := runner.GetAnnotations()[octorunv1alpha1.AnnotationRunnerEvictionPolicy]; ok && ep == "IfNotActive" {
+	if runner.Spec.EvictionPolicy == octorunv1.RunnerEvictionIfNotActive {
 		annotation["cluster-autoscaler.kubernetes.io/safe-to-evict"] = "true"
 	}
 
 	runnerLabels := make([]string, 0)
 	for k, v := range runner.ObjectMeta.Labels {
-		if !strings.HasPrefix(k, octorunv1alpha1.LabelPrefix) {
+		if !strings.HasPrefix(k, octorunv1.LabelPrefix) {
 			continue
 		}
 
-		runnerLabel := strings.TrimPrefix(k, octorunv1alpha1.LabelPrefix) + "=" + v
+		runnerLabel := strings.TrimPrefix(k, octorunv1.LabelPrefix) + "=" + v
 		runnerLabels = append(runnerLabels, runnerLabel)
 	}
 
