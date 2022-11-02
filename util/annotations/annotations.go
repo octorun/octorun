@@ -21,7 +21,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 )
 
 // AnnotateTokenExpires give an annotation to given runner
@@ -32,7 +32,7 @@ func AnnotateTokenExpires(obj client.Object, tokenExpiresAt string) {
 		annotations = make(map[string]string)
 	}
 
-	annotations[octorunv1alpha1.AnnotationRunnerTokenExpiresAt] = tokenExpiresAt
+	annotations[octorunv1.AnnotationRunnerTokenExpiresAt] = tokenExpiresAt
 	obj.SetAnnotations(annotations)
 }
 
@@ -46,7 +46,7 @@ func AnnotateTokenExpires(obj client.Object, tokenExpiresAt string) {
 func IsTokenExpired(obj client.Object) bool {
 	n := time.Now().UTC()
 	annotations := obj.GetAnnotations()
-	tokenExpire, ok := annotations[octorunv1alpha1.AnnotationRunnerTokenExpiresAt]
+	tokenExpire, ok := annotations[octorunv1.AnnotationRunnerTokenExpiresAt]
 	if !ok {
 		return true
 	}

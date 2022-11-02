@@ -10,9 +10,10 @@ resources:
   controller: true
   domain: octorun.github.io
   kind: Runner
-  path: octorun.github.io/octorun/api/v1alpha1
-  version: v1alpha1
+  path: octorun.github.io/octorun/api/v1alpha2
+  version: v1alpha2
   webhooks:
+    conversion: true
     defaulting: true
     validation: true
     webhookVersion: v1
@@ -22,10 +23,25 @@ resources:
   controller: true
   domain: octorun.github.io
   kind: RunnerSet
-  path: octorun.github.io/octorun/api/v1alpha1
-  version: v1alpha1
+  path: octorun.github.io/octorun/api/v1alpha2
+  version: v1alpha2
   webhooks:
+    conversion: true
     defaulting: true
     validation: true
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: octorun.github.io
+  kind: Runner
+  path: octorun.github.io/octorun/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: octorun.github.io
+  kind: RunnerSet
+  path: octorun.github.io/octorun/api/v1alpha1
+  version: v1alpha1
 version: "3"

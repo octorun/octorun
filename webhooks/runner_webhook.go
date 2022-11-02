@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -38,15 +38,15 @@ type RunnerWebhook struct {
 	Client client.Reader
 }
 
-// +kubebuilder:webhook:path=/mutate-octorun-github-io-v1alpha1-runner,mutating=true,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runners,verbs=create;update,versions=v1alpha1,name=mrunner.octorun.github.io,admissionReviewVersions=v1
-// +kubebuilder:webhook:path=/validate-octorun-github-io-v1alpha1-runner,mutating=false,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runners,verbs=create;update,versions=v1alpha1,name=vrunner.octorun.github.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-octorun-github-io-v1alpha2-runner,mutating=true,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runners,verbs=create;update,versions=v1alpha2,name=mrunner.octorun.github.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-octorun-github-io-v1alpha2-runner,mutating=false,failurePolicy=fail,sideEffects=None,groups=octorun.github.io,resources=runners,verbs=create;update,versions=v1alpha2,name=vrunner.octorun.github.io,admissionReviewVersions=v1
 
 var _ webhook.CustomDefaulter = &RunnerWebhook{}
 var _ webhook.CustomValidator = &RunnerWebhook{}
 
 func (w *RunnerWebhook) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&octorunv1alpha1.Runner{}).
+		For(&octorunv1.Runner{}).
 		WithDefaulter(w).
 		WithValidator(w).
 		Complete()
@@ -54,7 +54,7 @@ func (w *RunnerWebhook) SetupWithManager(ctx context.Context, mgr ctrl.Manager) 
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the type
 func (w *RunnerWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	runner, ok := obj.(*octorunv1alpha1.Runner)
+	runner, ok := obj.(*octorunv1.Runner)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Runner but got a %T", obj))
 	}
@@ -63,8 +63,8 @@ func (w *RunnerWebhook) Default(ctx context.Context, obj runtime.Object) error {
 		runner.Labels = make(map[string]string)
 	}
 
-	if _, ok := runner.Labels[octorunv1alpha1.LabelRunnerName]; !ok && runner.Name != "" {
-		runner.Labels[octorunv1alpha1.LabelRunnerName] = runner.GetName()
+	if _, ok := runner.Labels[octorunv1.LabelRunnerName]; !ok && runner.Name != "" {
+		runner.Labels[octorunv1.LabelRunnerName] = runner.GetName()
 	}
 
 	if runner.Spec.Group == "" {
@@ -81,7 +81,7 @@ func (w *RunnerWebhook) Default(ctx context.Context, obj runtime.Object) error {
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	var allErrs field.ErrorList
-	runner, ok := obj.(*octorunv1alpha1.Runner)
+	runner, ok := obj.(*octorunv1.Runner)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Runner but got a %T", obj))
 	}

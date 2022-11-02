@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/pkg/statemetrics"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -38,7 +38,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "labels",
 			Help: "Kubernetes labels converted to Prometheus labels.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				k, v := MapToPrometheusLabels("label", rs.Labels)
 				return []*statemetrics.Metric{
 					{
@@ -53,7 +53,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "created",
 			Help: "Unix creation timestamp",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if !rs.CreationTimestamp.IsZero() {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -70,7 +70,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "spec_runners",
 			Help: "Number of desired runners.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if rs.Spec.Runners != nil {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -85,7 +85,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_runners",
 			Help: "Most recently observed number of runners.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if rs.Spec.Runners != nil {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -100,7 +100,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_idle_runners",
 			Help: "Most recently observed number of idle runners.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if rs.Spec.Runners != nil {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -115,7 +115,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_active_runners",
 			Help: "Most recently observed number of active runners.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if rs.Spec.Runners != nil {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -130,7 +130,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_conditions",
 			Help: "Current status conditions.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				return MetaConditionsMetrics(rs.Status.Conditions)
 			}),
 		},
@@ -138,7 +138,7 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "runner_active_ratio",
 			Help: "Ratio of active runners per total runners.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1alpha1.RunnerSet) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(rs *octorunv1.RunnerSet) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				x := float64(rs.Status.ActiveRunners) / float64(rs.Status.Runners)
 				v := int(x * 100)
@@ -157,16 +157,16 @@ func (p *RunnerSetProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 func (p *RunnerSetProvider) Lister(ctx context.Context, r client.Reader) cache.Lister {
 	return &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			runnersetList := &octorunv1alpha1.RunnerSetList{}
+			runnersetList := &octorunv1.RunnerSetList{}
 			err := r.List(ctx, runnersetList, &client.ListOptions{Raw: &options})
 			return runnersetList, err
 		},
 	}
 }
 
-func (p *RunnerSetProvider) WrapMetricsFunc(fn func(*octorunv1alpha1.RunnerSet) []*statemetrics.Metric) func(runtime.Object) []*statemetrics.Metric {
+func (p *RunnerSetProvider) WrapMetricsFunc(fn func(*octorunv1.RunnerSet) []*statemetrics.Metric) func(runtime.Object) []*statemetrics.Metric {
 	return func(obj runtime.Object) []*statemetrics.Metric {
-		runnerset := obj.(*octorunv1alpha1.RunnerSet)
+		runnerset := obj.(*octorunv1.RunnerSet)
 		metrics := fn(runnerset)
 		for _, m := range metrics {
 			m.LabelKeys = append([]string{"namespace", "runnerset"}, m.LabelKeys...)

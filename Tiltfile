@@ -1,8 +1,7 @@
 # -*- mode: Python -*-
 # pyright: reportUndefinedVariable=false
 
-os.putenv('PATH', './bin' + ':' + os.getenv('PATH'))
-
+os.putenv('PATH', os.path.abspath('./bin') + ':' + os.getenv('PATH'))
 
 def fixup_run_as_nonroot(yaml):
     yaml_str = str(yaml)
@@ -31,7 +30,7 @@ else:
 
 manager_deps = ["api", "controllers",
                 "webhooks", "go.mod", "go.sum", "main.go"]
-manager_ignore = ['*/*/zz_generated.deepcopy.go']
+manager_ignore = ['*/*/zz_generated.deepcopy.go', '*/*/zz_generated.conversion.go']
 
 local_resource("octorun-manifest",
                cmd='make manifests',

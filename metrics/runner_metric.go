@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/pkg/statemetrics"
 )
 
@@ -40,7 +40,7 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "labels",
 			Help: "Kubernetes labels converted to Prometheus labels.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1alpha1.Runner) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1.Runner) []*statemetrics.Metric {
 				k, v := MapToPrometheusLabels("label", r.Labels)
 				return []*statemetrics.Metric{
 					{
@@ -55,7 +55,7 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "created",
 			Help: "Unix creation timestamp",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1alpha1.Runner) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1.Runner) []*statemetrics.Metric {
 				metrics := []*statemetrics.Metric{}
 				if !r.CreationTimestamp.IsZero() {
 					metrics = append(metrics, &statemetrics.Metric{
@@ -72,7 +72,7 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_phase",
 			Help: "Current status phase.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1alpha1.Runner) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1.Runner) []*statemetrics.Metric {
 				phase := r.Status.Phase
 				if phase == "" {
 					return []*statemetrics.Metric{}
@@ -82,10 +82,10 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 					met      bool
 					strphase string
 				}{
-					{phase == octorunv1alpha1.RunnerPendingPhase, string(octorunv1alpha1.RunnerPendingPhase)},
-					{phase == octorunv1alpha1.RunnerIdlePhase, string(octorunv1alpha1.RunnerIdlePhase)},
-					{phase == octorunv1alpha1.RunnerActivePhase, string(octorunv1alpha1.RunnerActivePhase)},
-					{phase == octorunv1alpha1.RunnerCompletePhase, string(octorunv1alpha1.RunnerCompletePhase)},
+					{phase == octorunv1.RunnerPendingPhase, string(octorunv1.RunnerPendingPhase)},
+					{phase == octorunv1.RunnerIdlePhase, string(octorunv1.RunnerIdlePhase)},
+					{phase == octorunv1.RunnerActivePhase, string(octorunv1.RunnerActivePhase)},
+					{phase == octorunv1.RunnerCompletePhase, string(octorunv1.RunnerCompletePhase)},
 				}
 
 				metrics := make([]*statemetrics.Metric, len(phases))
@@ -105,7 +105,7 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 			Name: "status_conditions",
 			Help: "Current status conditions.",
 			Type: prometheus.GaugeValue,
-			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1alpha1.Runner) []*statemetrics.Metric {
+			MetricsFunc: p.WrapMetricsFunc(func(r *octorunv1.Runner) []*statemetrics.Metric {
 				return MetaConditionsMetrics(r.Status.Conditions)
 			}),
 		},
@@ -115,16 +115,16 @@ func (p *RunnerProvider) ProvideMetricFamily() []statemetrics.MetricFamily {
 func (p *RunnerProvider) Lister(ctx context.Context, r client.Reader) cache.Lister {
 	return &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			runnerList := &octorunv1alpha1.RunnerList{}
+			runnerList := &octorunv1.RunnerList{}
 			err := r.List(ctx, runnerList, &client.ListOptions{Raw: &options})
 			return runnerList, err
 		},
 	}
 }
 
-func (p *RunnerProvider) WrapMetricsFunc(fn func(*octorunv1alpha1.Runner) []*statemetrics.Metric) func(runtime.Object) []*statemetrics.Metric {
+func (p *RunnerProvider) WrapMetricsFunc(fn func(*octorunv1.Runner) []*statemetrics.Metric) func(runtime.Object) []*statemetrics.Metric {
 	return func(obj runtime.Object) []*statemetrics.Metric {
-		runner := obj.(*octorunv1alpha1.Runner)
+		runner := obj.(*octorunv1.Runner)
 		metrics := fn(runner)
 		for _, m := range metrics {
 			m.LabelKeys = append([]string{"namespace", "runner"}, m.LabelKeys...)

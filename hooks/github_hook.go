@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/pkg/github/webhook"
 )
 
@@ -53,7 +53,7 @@ func (gh *GithubHook) SetupWithManager(ctx context.Context, mgr manager.Manager,
 	// And caching with composite index field here is because controller-runtime cache reader with field selector currently
 	// doesn't support non-exact field matches.
 	// https://github.com/kubernetes-sigs/controller-runtime/blob/v0.10.0/pkg/cache/internal/cache_reader.go#L116-L126
-	if err := mgr.GetCache().IndexField(ctx, &octorunv1alpha1.Runner{}, runnerCompositeIndexField, gh.runnerCompositeIndexer); err != nil {
+	if err := mgr.GetCache().IndexField(ctx, &octorunv1.Runner{}, runnerCompositeIndexField, gh.runnerCompositeIndexer); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func (gh *GithubHook) runnerCompositeIndex(runnerName, runnerID, runnerGroup, ru
 // runnerCompositeIndexer knowns how to build composite index cache key.
 func (gh *GithubHook) runnerCompositeIndexer(o client.Object) []string {
 	var v []string
-	runner, ok := o.(*octorunv1alpha1.Runner)
+	runner, ok := o.(*octorunv1.Runner)
 	if !ok {
 		return v
 	}
@@ -108,7 +108,7 @@ func (gh *GithubHook) runnerCompositeIndexer(o client.Object) []string {
 // the Runner status.phase field is only managed by the runner-controller (not by other systems, including this hook).
 func (gh *GithubHook) triggerRunnerReconciliation(ctx context.Context, runnerKey client.ObjectKey) (reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	runner := &octorunv1alpha1.Runner{}
+	runner := &octorunv1.Runner{}
 	if err := gh.Client.Get(ctx, runnerKey, runner); err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -126,7 +126,7 @@ func (gh *GithubHook) triggerRunnerReconciliation(ctx context.Context, runnerKey
 		annotation = make(map[string]string)
 	}
 
-	annotation[octorunv1alpha1.AnnotationRunnerAssignedJobAt] = time.Now().Format(time.RFC3339)
+	annotation[octorunv1.AnnotationRunnerAssignedJobAt] = time.Now().Format(time.RFC3339)
 	runner.SetAnnotations(annotation)
 	return nil
 }
@@ -139,7 +139,7 @@ func (gh *GithubHook) processWorkflowJobEvent(ctx context.Context, event *github
 		runnerID := strconv.Itoa(int(event.WorkflowJob.GetRunnerID()))
 		runnerName := event.WorkflowJob.GetRunnerName()
 		runnerGroup := event.WorkflowJob.GetRunnerGroupName()
-		runnerList := &octorunv1alpha1.RunnerList{}
+		runnerList := &octorunv1.RunnerList{}
 		if event.Repo.Owner.GetType() == "Organization" {
 			// If repo owned by Organization try to find runner based on organization url first.
 			u := event.Repo.Owner.GetHTMLURL()

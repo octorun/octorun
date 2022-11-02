@@ -11,14 +11,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-octorun-github-io-v1alpha1-runner
+      path: /mutate-octorun-github-io-v1alpha2-runner
   failurePolicy: Fail
   name: mrunner.octorun.github.io
   rules:
   - apiGroups:
     - octorun.github.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
@@ -31,14 +31,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-octorun-github-io-v1alpha1-runnerset
+      path: /mutate-octorun-github-io-v1alpha2-runnerset
   failurePolicy: Fail
   name: mrunnerset.octorun.github.io
   rules:
   - apiGroups:
     - octorun.github.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
@@ -58,14 +58,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-octorun-github-io-v1alpha1-runner
+      path: /validate-octorun-github-io-v1alpha2-runner
   failurePolicy: Fail
   name: vrunner.octorun.github.io
   rules:
   - apiGroups:
     - octorun.github.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE
@@ -78,14 +78,14 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-octorun-github-io-v1alpha1-runnerset
+      path: /validate-octorun-github-io-v1alpha2-runnerset
   failurePolicy: Fail
   name: vrunnerset.octorun.github.io
   rules:
   - apiGroups:
     - octorun.github.io
     apiVersions:
-    - v1alpha1
+    - v1alpha2
     operations:
     - CREATE
     - UPDATE

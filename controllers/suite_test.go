@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"octorun.github.io/octorun/pkg/github"
 	"octorun.github.io/octorun/util"
 	"octorun.github.io/octorun/util/pod"
@@ -93,7 +93,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = octorunv1alpha1.AddToScheme(scheme)
+	err = octorunv1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	crclient, err = client.New(cfg, client.Options{Scheme: scheme})

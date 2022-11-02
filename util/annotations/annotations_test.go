@@ -23,18 +23,18 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 )
 
 func TestAnnotateTokenExpires(t *testing.T) {
 	tests := []struct {
 		name           string
-		runner         *octorunv1alpha1.Runner
+		runner         *octorunv1.Runner
 		tokenExpiresAt string
 	}{
 		{
 			name: "can_set_token_expire_annotation",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
@@ -49,7 +49,7 @@ func TestAnnotateTokenExpires(t *testing.T) {
 		})
 
 		annotation := tt.runner.GetAnnotations()
-		tokenExpiresAtAnnotation := annotation[octorunv1alpha1.AnnotationRunnerTokenExpiresAt]
+		tokenExpiresAtAnnotation := annotation[octorunv1.AnnotationRunnerTokenExpiresAt]
 		if !reflect.DeepEqual(tokenExpiresAtAnnotation, tt.tokenExpiresAt) {
 			t.Errorf("Expected tokenExpiresAtAnnotation to be the same tokenExpiresAt\n tokenExpiresAtAnnotation: %v\n tokenExpiresAt: %v\n", tokenExpiresAtAnnotation, tt.tokenExpiresAt)
 		}
@@ -59,17 +59,17 @@ func TestAnnotateTokenExpires(t *testing.T) {
 func TestIsTokenExpired(t *testing.T) {
 	tests := []struct {
 		name   string
-		runner *octorunv1alpha1.Runner
+		runner *octorunv1.Runner
 		want   bool
 	}{
 		{
 			name: "invalid_time_format",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
-						octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Format(time.RFC1123),
+						octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Format(time.RFC1123),
 					},
 				},
 			},
@@ -77,12 +77,12 @@ func TestIsTokenExpired(t *testing.T) {
 		},
 		{
 			name: "runner_with_registration_token_expire_1h_ago",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
-						octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
+						octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
 					},
 				},
 			},
@@ -91,12 +91,12 @@ func TestIsTokenExpired(t *testing.T) {
 
 		{
 			name: "runner_with_registration_token_expire_in_2m",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
-						octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Add(2 * time.Minute).Format(time.RFC3339),
+						octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Add(2 * time.Minute).Format(time.RFC3339),
 					},
 				},
 			},
@@ -104,12 +104,12 @@ func TestIsTokenExpired(t *testing.T) {
 		},
 		{
 			name: "runner_with_registration_token_expire_in_6m",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
-						octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Add(6 * time.Minute).Format(time.RFC3339),
+						octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Add(6 * time.Minute).Format(time.RFC3339),
 					},
 				},
 			},
@@ -117,12 +117,12 @@ func TestIsTokenExpired(t *testing.T) {
 		},
 		{
 			name: "runner_with_registration_token_expire_in_1h",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
-						octorunv1alpha1.AnnotationRunnerTokenExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+						octorunv1.AnnotationRunnerTokenExpiresAt: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 					},
 				},
 			},
@@ -130,7 +130,7 @@ func TestIsTokenExpired(t *testing.T) {
 		},
 		{
 			name: "runner_without_registration_token_expire_annotation",
-			runner: &octorunv1alpha1.Runner{
+			runner: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-runner",
 					Namespace: "test-namespace",

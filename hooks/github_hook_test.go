@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
-	octorunv1alpha1 "octorun.github.io/octorun/api/v1alpha1"
+	octorunv1 "octorun.github.io/octorun/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -51,12 +51,12 @@ func TestGithubHook_runnerCompositeIndexer(t *testing.T) {
 		},
 		{
 			name: "runner_spec_id_is_null",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					ID: nil,
 				},
 			},
@@ -64,12 +64,12 @@ func TestGithubHook_runnerCompositeIndexer(t *testing.T) {
 		},
 		{
 			name: "runner_spec_id_not_null",
-			obj: &octorunv1alpha1.Runner{
+			obj: &octorunv1.Runner{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "bar",
 				},
-				Spec: octorunv1alpha1.RunnerSpec{
+				Spec: octorunv1.RunnerSpec{
 					ID: pointer.Int64(1),
 				},
 			},
@@ -88,13 +88,13 @@ func TestGithubHook_runnerCompositeIndexer(t *testing.T) {
 
 func TestGithubHook_triggerRunnerReconciliation(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := octorunv1alpha1.AddToScheme(scheme); err != nil {
+	if err := octorunv1.AddToScheme(scheme); err != nil {
 		t.Errorf("unexpected AddToScheme error: %v", err)
 	}
 
 	fakec := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(&octorunv1alpha1.Runner{
+		WithObjects(&octorunv1.Runner{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: "default",

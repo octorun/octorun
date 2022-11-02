@@ -14,12 +14,12 @@ toc: true
 ---
 
 ## Packages
-- [octorun.github.io/v1alpha1](#octorungithubiov1alpha1)
+- [octorun.github.io/v1alpha2](#octorungithubiov1alpha2)
 
 
-### octorun.github.io/v1alpha1
+### octorun.github.io/v1alpha2
 
-Package v1alpha1 contains API Schema definitions for the  v1alpha1 API group
+Package v1alpha2 contains API Schema definitions for the  v1alpha2 API group
 
 ## Resource Types
 - [Runner](#runner)
@@ -40,7 +40,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `octorun.github.io/v1alpha1`
+| `apiVersion` _string_ | `octorun.github.io/v1alpha2`
 | `kind` _string_ | `Runner`
 | `TypeMeta` _[TypeMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#typemeta-v1-meta)_ |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
@@ -74,7 +74,7 @@ RunnerList contains a list of Runner
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `octorun.github.io/v1alpha1`
+| `apiVersion` _string_ | `octorun.github.io/v1alpha2`
 | `kind` _string_ | `RunnerList`
 | `TypeMeta` _[TypeMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#typemeta-v1-meta)_ |  |
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
@@ -108,7 +108,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `octorun.github.io/v1alpha1`
+| `apiVersion` _string_ | `octorun.github.io/v1alpha2`
 | `kind` _string_ | `RunnerSet`
 | `TypeMeta` _[TypeMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#typemeta-v1-meta)_ |  |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
@@ -126,7 +126,7 @@ RunnerSetList contains a list of RunnerSet
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `octorun.github.io/v1alpha1`
+| `apiVersion` _string_ | `octorun.github.io/v1alpha2`
 | `kind` _string_ | `RunnerSetList`
 | `TypeMeta` _[TypeMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#typemeta-v1-meta)_ |  |
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
@@ -185,6 +185,7 @@ _Appears in:_
 | `group` _string_ | Name of the runner group to add to this runner. Defaults to Default. |
 | `workdir` _string_ | Relative runner work directory. |
 | `image` _[RunnerImage](#runnerimage)_ | Runner container image specification |
+| `evictionPolicy` _RunnerEvictionPolicy_ | EvictionPolicy can be Never or IfNotActive. IfNotActive will annotate the runner Pod with `cluster-autoscaler.kubernetes.io/safe-to-evict=true` once created and will be removed when Runner become Active (has assigned job) to allow Kubernetes cluster-autoscaler eviction when draining underutilized node. |
 | `placement` _[RunnerPlacement](#runnerplacement)_ | Placement configuration to pass to kubernetes pod (affinity, node selector, etc). |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core)_ | Compute resources required by runner container. |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to use to run this runner pod. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/ |

@@ -1,0 +1,10 @@
+apiVersion: octorun.github.io/v1alpha2
+kind: Runner
+metadata:
+  name: runner-sample
+  labels:
+    octorun.github.io/runner: myrunner
+spec:
+  url: https://github.com/octorun/test-repo
+  image:
+    name: ghcr.io/octorun/runner:latest
