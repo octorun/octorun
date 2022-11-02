@@ -8,12 +8,26 @@ def fixup_run_as_nonroot(yaml):
     yaml_str = str(yaml)
     return blob(yaml_str.replace("runAsNonRoot: true", "runAsNonRoot: false"))
 
+def deploy_kubeprom():
+    print("Installing kube-prometheus")
+    local(command="kubectl apply --server-side -f hack/kube-prometheus/manifests/setup", quiet=True, echo_off=True)
+    local(command="kubectl wait --for condition=Established --all CustomResourceDefinition --namespace=monitoring", quiet=True, echo_off=True)
+    local(command="kubectl apply -f hack/kube-prometheus/manifests/",quiet=True, echo_off=True)
+
+def teardown_kubeprom():
+    print("Uninstalling kube-prometheus")
+    local(command="kubectl delete --ignore-not-found=true -f hack/kube-prometheus/manifests/ -f hack/kube-prometheus/manifests/setup", quiet=True, echo_off=True)
 
 load('ext://cert_manager', 'deploy_cert_manager')
-deploy_cert_manager()
 
 local("make kustomize", quiet=True)
 local("make kubeprom", quiet=True)
+
+if config.tilt_subcommand == 'up':
+    deploy_cert_manager()
+    deploy_kubeprom()
+else:
+    teardown_kubeprom()
 
 manager_deps = ["api", "controllers",
                 "webhooks", "go.mod", "go.sum", "main.go"]
