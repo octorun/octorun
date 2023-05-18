@@ -3276,6 +3276,12 @@ spec:
           spec:
             description: RunnerSetSpec defines the desired state of RunnerSet
             properties:
+              revisionHistoryLimit:
+                default: 10
+                description: 'The maximum number of revision history to keep, default:
+                  10.'
+                format: int32
+                type: integer
               runners:
                 default: 1
                 description: Runners is the number of desired runners. This is a pointer
@@ -6371,6 +6377,22 @@ spec:
                     - url
                     type: object
                 type: object
+              updateStrategy:
+                description: UpdateStrategy indicates the RunnerSetUpdateStrategy
+                  that will be employed to update Runners in the RunnerSet when a
+                  revision is made to Template.
+                properties:
+                  type:
+                    default: OnDelete
+                    description: 'Type indicates the type of the RunnerSetUpdateStrategy.
+                      Default is OnDelete. NOTE: This is an alpha feature hence the
+                      default is OnDelete (for now). The Default would be RollingUpdate
+                      in the future.'
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
+                    type: string
+                type: object
             required:
             - selector
             type: object
@@ -6379,6 +6401,12 @@ spec:
             properties:
               activeRunners:
                 description: The number of active runners for this RunnerSet.
+                format: int32
+                type: integer
+              collisionCount:
+                description: Count of hash collisions for the RunnerSet. The RunnerSet
+                  controller uses this field as a collision avoidance mechanism when
+                  it needs to create the name for the newest ControllerRevision.
                 format: int32
                 type: integer
               conditions:
@@ -6450,10 +6478,16 @@ spec:
                   - type
                   type: object
                 type: array
+              currentRevision:
+                description: CurrentRevision indicates the revision of RunnerSet.
+                type: string
               idleRunners:
                 description: The number of idle runners for this RunnerSet.
                 format: int32
                 type: integer
+              nextRevision:
+                description: NextRevision indicates the next revision of RunnerSet.
+                type: string
               runners:
                 description: Runners is the most recently observed number of runners.
                 format: int32

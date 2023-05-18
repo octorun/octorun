@@ -67,4 +67,6 @@ const (
 	//	runnerset=myrunnerset
 	//
 	LabelRunnerSetName = LabelPrefix + "runnerset"
+
+	LabelControllerRevisionHash = LabelPrefix + "revision-hash"
 )

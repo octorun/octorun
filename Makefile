@@ -157,6 +157,7 @@ ENVTEST		?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v4.5.7
+CRDREF_GEN_VERSION ?= v0.0.8
 CONVERSION_GEN_VERSION	?= v0.22.2
 CONTROLLER_GEN_VERSION	?= v0.9.2
 
@@ -170,7 +171,7 @@ conversion-gen: ## Download conversion-gen locally if necessary.
 
 .PHONY: crdref-gen
 crdref-gen: ## Download crd-ref-docs generator locally if necessary.
-	test -s $(CRD_REF_DOCS) || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@latest
+	test -s $(CRD_REF_DOCS) || GOBIN=$(LOCALBIN) go install github.com/elastic/crd-ref-docs@$(CRDREF_GEN_VERSION)
 
 .PHONY: ginkgo
 ginkgo: ## Download ginkgo locally if necessary.
