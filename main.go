@@ -117,9 +117,10 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RunnerSetReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor(controllers.RunnerSetController),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Recorder:   mgr.GetEventRecorderFor(controllers.RunnerSetController),
+		Revisioner: new(controllers.RunnerSetRevisioner),
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RunnerSet")
 		os.Exit(1)

@@ -29,8 +29,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -109,14 +111,15 @@ var _ = Describe("RunnerSetReconciler", func() {
 			Eventually(func() bool {
 				var runnerCount int32
 				runnerList := &octorunv1.RunnerList{}
-				Expect(crclient.List(ctx, runnerList, client.MatchingLabels(selector.MatchLabels))).To(Succeed())
-				for i := range runnerList.Items {
-					runner := &runnerList.Items[i]
-					if !metav1.IsControlledBy(runner, runnerset) {
-						continue
+				Expect(crclient.List(ctx, runnerList, client.InNamespace(runnerset.GetNamespace()), client.MatchingLabels(selector.MatchLabels))).To(Succeed())
+				Expect(meta.EachListItem(runnerList, func(o runtime.Object) error {
+					if !metav1.IsControlledBy(o.(metav1.Object), runnerset) {
+						return nil
 					}
+
 					runnerCount += 1
-				}
+					return nil
+				})).To(Succeed())
 				return runnerCount == *runnerset.Spec.Runners
 			}, timeout, interval).Should(BeTrue())
 		}
@@ -124,7 +127,7 @@ var _ = Describe("RunnerSetReconciler", func() {
 		WaitRunnersBecomeIdle := func(runnerset *octorunv1.RunnerSet) {
 			Eventually(func() bool {
 				runnerList := &octorunv1.RunnerList{}
-				Expect(crclient.List(ctx, runnerList, client.MatchingLabels(selector.MatchLabels))).To(Succeed())
+				Expect(crclient.List(ctx, runnerList, client.InNamespace(runnerset.GetNamespace()), client.MatchingLabels(selector.MatchLabels))).To(Succeed())
 				for i := range runnerList.Items {
 					runner := &runnerList.Items[i]
 					if !metav1.IsControlledBy(runner, runnerset) {
@@ -152,6 +155,20 @@ var _ = Describe("RunnerSetReconciler", func() {
 
 				By("Waiting Runners become Idle")
 				WaitRunnersBecomeIdle(runnerset)
+			})
+			It("Should create one ControllerRevision", func() {
+				Eventually(func() bool {
+					Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerset), runnerset)).Should(Succeed())
+					revisionList := &appsv1.ControllerRevisionList{}
+					Expect(crclient.List(ctx, revisionList, client.InNamespace(runnerset.GetNamespace()), client.MatchingLabels(runnerset.Spec.Template.Labels))).To(Succeed())
+					revisions := make([]*appsv1.ControllerRevision, 0, len(revisionList.Items))
+					Expect(meta.EachListItem(revisionList, func(o runtime.Object) error {
+						revisions = append(revisions, o.(*appsv1.ControllerRevision))
+						return nil
+					})).To(Succeed())
+					revName := revisions[0].GetName()
+					return revName == runnerset.Status.CurrentRevision && revName == runnerset.Status.NextRevision
+				}, timeout, interval).Should(BeTrue())
 			})
 		})
 
@@ -210,6 +227,7 @@ var _ = Describe("RunnerSetReconciler", func() {
 func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(octorunv1.AddToScheme(scheme))
+	utilruntime.Must(appsv1.AddToScheme(scheme))
 
 	runnerListForRunnerSet := func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
 		runners := int(pointer.Int32Deref(rs.Spec.Runners, 0))
@@ -390,6 +408,43 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 			want:    reconcile.Result{},
 			wantErr: false,
 		},
+		{
+			name: "oneof_idle_runners_has_missmatch_rev_label",
+			runnersetFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerSet {
+				rs.Spec.UpdateStrategy.Type = octorunv1.RollingUpdateRunnerSetStrategyType
+				return rs
+			},
+			runnerListFn: func(rs *octorunv1.RunnerSet) *octorunv1.RunnerList {
+				runnerList := runnerListForRunnerSet(rs)
+				var items []runtime.Object
+				_ = meta.EachListItem(runnerList, func(o runtime.Object) error {
+					items = append(items, o.(*octorunv1.Runner))
+					return nil
+				})
+
+				runnerWithMissMatchRev := &octorunv1.Runner{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            rs.Name + "-" + strconv.Itoa(len(items)+1),
+						Namespace:       rs.Namespace,
+						Labels:          rs.Spec.Selector.MatchLabels,
+						OwnerReferences: rs.GetOwnerReferences(),
+					},
+					Spec: octorunv1.RunnerSpec{
+						URL: rs.Spec.Template.Spec.URL,
+					},
+					Status: octorunv1.RunnerStatus{
+						Phase: octorunv1.RunnerIdlePhase,
+					},
+				}
+
+				runnerWithMissMatchRev.Labels[octorunv1.LabelControllerRevisionHash] = "missmatch"
+				items = append(items, runnerWithMissMatchRev)
+				_ = meta.SetList(runnerList, items)
+				return runnerList
+			},
+			want:    reconcile.Result{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -426,9 +481,10 @@ func TestRunnerSetReconciler_Reconcile(t *testing.T) {
 				Build()
 
 			r := &RunnerSetReconciler{
-				Client:   fakec,
-				Scheme:   scheme,
-				Recorder: new(record.FakeRecorder),
+				Client:     fakec,
+				Scheme:     scheme,
+				Recorder:   new(record.FakeRecorder),
+				Revisioner: new(RunnerSetRevisioner),
 			}
 
 			got, err := r.Reconcile(context.Background(), reconcile.Request{

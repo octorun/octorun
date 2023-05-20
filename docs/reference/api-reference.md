@@ -146,6 +146,8 @@ _Appears in:_
 | --- | --- |
 | `runners` _integer_ | Runners is the number of desired runners. This is a pointer to distinguish between explicit zero and unspecified. Defaults to 1. |
 | `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta)_ | Selector is a label query over runners that should match the replica count. Label keys and values that must match in order to be controlled by this RunnerSet. It must match the runner template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors |
+| `updateStrategy` _[RunnerSetUpdateStrategy](#runnersetupdatestrategy)_ | UpdateStrategy indicates the RunnerSetUpdateStrategy that will be employed to update Runners in the RunnerSet when a revision is made to Template. |
+| `revisionHistoryLimit` _integer_ | The maximum number of revision history to keep, default: 10. |
 | `template` _[RunnerTemplateSpec](#runnertemplatespec)_ | Template is the object that describes the runner that will be created if insufficient replicas are detected. |
 
 
@@ -163,8 +165,25 @@ _Appears in:_
 | `runners` _integer_ | Runners is the most recently observed number of runners. |
 | `idleRunners` _integer_ | The number of idle runners for this RunnerSet. |
 | `activeRunners` _integer_ | The number of active runners for this RunnerSet. |
+| `currentRevision` _string_ | CurrentRevision indicates the revision of RunnerSet. |
+| `nextRevision` _string_ | NextRevision indicates the next revision of RunnerSet. |
+| `collisionCount` _integer_ | Count of hash collisions for the RunnerSet. The RunnerSet controller uses this field as a collision avoidance mechanism when it needs to create the name for the newest ControllerRevision. |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#condition-v1-meta) array_ | Conditions defines current service state of the runner. |
 | `selector` _string_ | Selector is the same as the label selector but in the string format to avoid introspection by clients. The string will be in the same format as the query-param syntax. More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors |
+
+
+### RunnerSetUpdateStrategy
+
+
+
+
+
+_Appears in:_
+- [RunnerSetSpec](#runnersetspec)
+
+| Field | Description |
+| --- | --- |
+| `type` _RunnerSetUpdateStrategyType_ | Type indicates the type of the RunnerSetUpdateStrategy. Default is OnDelete. NOTE: This is an alpha feature hence the default is OnDelete (for now). The Default would be RollingUpdate in the future. |
 
 
 ### RunnerSpec

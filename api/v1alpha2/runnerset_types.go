@@ -26,6 +26,31 @@ const (
 	RunnerDeletedReason string = "RunnerDeleted"
 )
 
+// RunnerSetUpdateStrategyType is a string enumeration type that enumerates
+// all possible update strategies for the RunnerSet controller.
+type RunnerSetUpdateStrategyType string
+
+const (
+	// RollingUpdateRunnerSetStrategyType indicates that update will be
+	// applied to all idle Runners in the RunnerSet.
+	RollingUpdateRunnerSetStrategyType RunnerSetUpdateStrategyType = "RollingUpdate"
+	// OnDeleteRunnerSetStrategyType triggers the legacy behavior.
+	// Runners are recreated from the RunnerSetSpec when they are
+	// manually deleted.
+	OnDeleteRunnerSetStrategyType RunnerSetUpdateStrategyType = "OnDelete"
+)
+
+type RunnerSetUpdateStrategy struct {
+	// Type indicates the type of the RunnerSetUpdateStrategy.
+	// Default is OnDelete.
+	// NOTE: This is an alpha feature hence the default is OnDelete (for now).
+	// The Default would be RollingUpdate in the future.
+	// +optional
+	// +kubebuilder:default=OnDelete
+	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	Type RunnerSetUpdateStrategyType `json:"type,omitempty"`
+}
+
 // RunnerSetSpec defines the desired state of RunnerSet
 type RunnerSetSpec struct {
 	// Runners is the number of desired runners. This is a pointer
@@ -40,6 +65,16 @@ type RunnerSetSpec struct {
 	// It must match the runner template's labels.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	Selector metav1.LabelSelector `json:"selector"`
+
+	// UpdateStrategy indicates the RunnerSetUpdateStrategy that will be
+	// employed to update Runners in the RunnerSet when a revision is made to
+	// Template.
+	UpdateStrategy RunnerSetUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// The maximum number of revision history to keep, default: 10.
+	// +optional
+	// +kubebuilder:default=10
+	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 
 	// Template is the object that describes the runner that will be created if
 	// insufficient replicas are detected.
@@ -60,6 +95,20 @@ type RunnerSetStatus struct {
 	// The number of active runners for this RunnerSet.
 	// +optional
 	ActiveRunners int32 `json:"activeRunners"`
+
+	// CurrentRevision indicates the revision of RunnerSet.
+	// +optional
+	CurrentRevision string `json:"currentRevision,omitempty"`
+
+	// NextRevision indicates the next revision of RunnerSet.
+	// +optional
+	NextRevision string `json:"nextRevision,omitempty"`
+
+	// Count of hash collisions for the RunnerSet. The RunnerSet controller
+	// uses this field as a collision avoidance mechanism when it needs to
+	// create the name for the newest ControllerRevision.
+	// +optional
+	CollisionCount *int32 `json:"collisionCount,omitempty"`
 
 	// Conditions defines current service state of the runner.
 	// +optional
