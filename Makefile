@@ -22,6 +22,7 @@ endif
 TEST_FLAGS ?=
 GINKGO_FLAGS ?=
 GINKGO_NOCOLOR ?= false
+GINKGO_FOCUS ?= "RunnerReconciler|RunnerSetReconciler|RunnerWebhook|RunnerSetWebhook"
 
 # Image URL to use all building/pushing image targets
 RELEASE_VERSION	?= main
@@ -99,7 +100,7 @@ test: generate fmt vet ## Run unit tests.
 test-integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" ACK_GINKGO_RC=true $(GINKGO) \
 	-slowSpecThreshold 30 -noColor=$(GINKGO_NOCOLOR) $(GINKGO_FLAGS) \
-	-focus="RunnerReconciler|RunnerSetReconciler|RunnerWebhook|RunnerSetWebhook" \
+	-focus=$(GINKGO_FOCUS) \
 	./controllers/... ./webhooks/...
 
 ##@ Build
