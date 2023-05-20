@@ -94,6 +94,18 @@ var _ = Describe("RunnerSetWebhook", func() {
 				Expect(crclient.Create(ctx, runnerset)).ToNot(Succeed())
 			})
 		})
+
+		Context("When `selector` does not match template `labels`", func() {
+			newRunnerSet := &octorunv1.RunnerSet{}
+			BeforeEach(func() {
+				runnerset.DeepCopyInto(newRunnerSet)
+				metav1.AddLabelToSelector(&newRunnerSet.Spec.Selector, "foo", "bar")
+			})
+
+			It("Should returns an error", func() {
+				Expect(crclient.Create(ctx, newRunnerSet)).ToNot(Succeed())
+			})
+		})
 	})
 
 	Describe("ValidateUpdate", func() {
@@ -118,6 +130,20 @@ var _ = Describe("RunnerSetWebhook", func() {
 				runnerset.Spec.Template.Spec.URL = "https://google.com/org/repo"
 				By("Updating the RunnerSet")
 				Expect(crclient.Update(ctx, runnerset)).To(HaveOccurred())
+			})
+		})
+
+		Context("When spec selector is updated", func() {
+			It("Should returns an error", func() {
+				By("Creating the RunnerSet")
+				Expect(crclient.Create(ctx, runnerset)).To(Succeed())
+				Expect(crclient.Get(ctx, client.ObjectKeyFromObject(runnerset), runnerset)).ToNot(HaveOccurred())
+
+				newRunnerSet := &octorunv1.RunnerSet{}
+				runnerset.DeepCopyInto(newRunnerSet)
+				metav1.AddLabelToSelector(&newRunnerSet.Spec.Selector, "foo", "bar")
+				By("Updating the RunnerSet")
+				Expect(crclient.Update(ctx, newRunnerSet)).To(HaveOccurred())
 			})
 		})
 	})

@@ -19,8 +19,11 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -79,10 +82,19 @@ func (w *RunnerSetWebhook) ValidateCreate(ctx context.Context, obj runtime.Objec
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", obj))
 	}
 
+	selector, err := metav1.LabelSelectorAsSelector(&runnerset.Spec.Selector)
+	if err != nil {
+		return err
+	}
+
 	template := runnerset.Spec.Template
 	templatePath := field.NewPath("spec", "template")
 	if !matchOrgOrRepoURLRegexp.MatchString(template.Spec.URL) {
 		allErrs = append(allErrs, field.Invalid(templatePath.Child("spec", "url"), template.Spec.URL, invalidURLMessage))
+	}
+
+	if !selector.Matches(labels.Set(template.Labels)) {
+		allErrs = append(allErrs, field.Invalid(templatePath.Child("metadata", "labels"), template.Labels, "`selector` does not match template `labels`"))
 	}
 
 	if len(allErrs) == 0 {
@@ -95,7 +107,7 @@ func (w *RunnerSetWebhook) ValidateCreate(ctx context.Context, obj runtime.Objec
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
 func (w *RunnerSetWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	var allErrs field.ErrorList
-	_, ok := oldObj.(*octorunv1.RunnerSet)
+	oldRunnerSet, ok := oldObj.(*octorunv1.RunnerSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a RunnerSet but got a %T", oldObj))
 	}
@@ -109,6 +121,10 @@ func (w *RunnerSetWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj ru
 	newTemplatePath := field.NewPath("spec", "template")
 	if !matchOrgOrRepoURLRegexp.MatchString(newTemplate.Spec.URL) {
 		allErrs = append(allErrs, field.Invalid(newTemplatePath.Child("spec", "url"), newTemplate.Spec.URL, invalidURLMessage))
+	}
+
+	if !reflect.DeepEqual(oldRunnerSet.Spec.Selector, newRunnerSet.Spec.Selector) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "selector"), "`selector` is immutable"))
 	}
 
 	if len(allErrs) == 0 {
