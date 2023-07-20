@@ -23,40 +23,13 @@ import (
 )
 
 func Convert_v1alpha2_RunnerSpec_To_v1alpha1_RunnerSpec(in *octorunv1.RunnerSpec, out *RunnerSpec, scope apiconversion.Scope) error {
-	out.URL = in.URL
-	out.ID = in.ID
-	out.OS = in.OS
-	out.Group = in.Group
-	out.Workdir = in.Workdir
-	if err := Convert_v1alpha2_RunnerImage_To_v1alpha1_RunnerImage(&in.Image, &out.Image, scope); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha2_RunnerPlacement_To_v1alpha1_RunnerPlacement(&in.Placement, &out.Placement, scope); err != nil {
-		return err
-	}
-	out.Resources = in.Resources
-	out.ServiceAccountName = in.ServiceAccountName
-	out.SecurityContext = in.SecurityContext
-	out.RuntimeClassName = in.RuntimeClassName
-	out.Volumes = in.Volumes
-	out.VolumeMounts = in.VolumeMounts
-	return nil
+	return autoConvert_v1alpha2_RunnerSpec_To_v1alpha1_RunnerSpec(in, out, scope)
 }
 
-func Convert_v1alpha2_RunnerSetSpec_To_v1alpha1_RunnerSetSpec(in *octorunv1.RunnerSetSpec, out *RunnerSetSpec, s apiconversion.Scope) error {
-	out.Runners = in.Runners
-	out.Selector = in.Selector
-	if err := Convert_v1alpha2_RunnerTemplateSpec_To_v1alpha1_RunnerTemplateSpec(&in.Template, &out.Template, s); err != nil {
-		return err
-	}
-	return nil
+func Convert_v1alpha2_RunnerSetSpec_To_v1alpha1_RunnerSetSpec(in *octorunv1.RunnerSetSpec, out *RunnerSetSpec, scope apiconversion.Scope) error {
+	return autoConvert_v1alpha2_RunnerSetSpec_To_v1alpha1_RunnerSetSpec(in, out, scope)
 }
 
-func Convert_v1alpha2_RunnerSetStatus_To_v1alpha1_RunnerSetStatus(in *octorunv1.RunnerSetStatus, out *RunnerSetStatus, s apiconversion.Scope) error {
-	out.Runners = in.Runners
-	out.IdleRunners = in.IdleRunners
-	out.ActiveRunners = in.ActiveRunners
-	out.Conditions = in.Conditions
-	out.Selector = in.Selector
-	return nil
+func Convert_v1alpha2_RunnerSetStatus_To_v1alpha1_RunnerSetStatus(in *octorunv1.RunnerSetStatus, out *RunnerSetStatus, scope apiconversion.Scope) error {
+	return autoConvert_v1alpha2_RunnerSetStatus_To_v1alpha1_RunnerSetStatus(in, out, scope)
 }
