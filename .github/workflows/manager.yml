@@ -35,7 +35,7 @@ env:
   KIND_VERSION: v0.14.0
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [lint, verify]
     steps:
       - uses: actions/checkout@v3
@@ -48,7 +48,7 @@ jobs:
         run: |
           make manager
   build-image:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [test, test-integration]
     steps:
       - uses: actions/checkout@v3
@@ -70,7 +70,7 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
@@ -82,7 +82,7 @@ jobs:
         with:
           version: v1.48.0
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [build]
     steps:
       - uses: actions/checkout@v3
@@ -94,7 +94,7 @@ jobs:
       - name: Run Tests
         run: make test TEST_FLAGS='-v'
   test-integration:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [build]
     if: ${{ github.event_name == 'push' }}
     steps:
@@ -126,7 +126,7 @@ jobs:
         run: |
           make test-integration GINKGO_FLAGS='-v'
   verify:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
