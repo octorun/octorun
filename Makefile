@@ -161,6 +161,7 @@ KUSTOMIZE_VERSION ?= v4.5.7
 CRDREF_GEN_VERSION ?= v0.0.8
 CONVERSION_GEN_VERSION	?= v0.22.2
 CONTROLLER_GEN_VERSION	?= v0.9.2
+ENVTEST_VERSION ?= release-0.13
 
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
@@ -184,4 +185,4 @@ kustomize: ## Download kustomize locally if necessary.
 
 .PHONY: envtest
 envtest: ## Download envtest-setup locally if necessary.
-	test -s $(ENVTEST) || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	test -s $(ENVTEST) || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(ENVTEST_VERSION)
