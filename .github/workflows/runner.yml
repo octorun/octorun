@@ -46,7 +46,6 @@ jobs:
           containerfiles: |
             ./runner/Dockerfile
       - name: Push to Registry
-        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.build-image.outputs.image }}
@@ -69,7 +68,6 @@ jobs:
           containerfiles: |
             ./runner/dockerd/Dockerfile
       - name: Push to Registry
-        if: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.build-image.outputs.image }}
